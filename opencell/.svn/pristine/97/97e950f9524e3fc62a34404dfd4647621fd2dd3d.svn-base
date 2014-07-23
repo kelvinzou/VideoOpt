@@ -1,6 +1,0 @@
-#! /bin/bash
-
-pdflatex CoNext.tex
-bibtex CoNext.aux
-pdflatex CoNext.tex
-
