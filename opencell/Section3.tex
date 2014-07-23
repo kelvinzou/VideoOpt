@@ -22,7 +22,7 @@ Once the computation work is finished, the central estimator sends the
 information to the proxy. 
  
 \begin{figure}[tb]\label{fig:Architecture}
- \includegraphics[width=\linewidth]{architecture2.pdf}
+ \includegraphics[width=\linewidth]{pictures/architecture2.pdf}
  \caption{Architecture for KPI Computing And Feedback}
 \end{figure}
 
@@ -48,7 +48,7 @@ If we encode it into TCP option field, any middleboxes on the Internet may modif
 The HTTP header may not be accessible since many streaming
 services are using secure encypted HTTP. Modifying HTTP header also requires DPI, which has a higher overhead than changing TCP.
 \begin{figure}[t]\label{fig:Datagram}
- \includegraphics[width=\linewidth]{datagram.pdf}
+ \includegraphics[width=\linewidth]{pictures/datagram.pdf}
  \caption{Datagram for exposing KPIs, it can be encoded in either option field or sequence number}
 \end{figure}
 
