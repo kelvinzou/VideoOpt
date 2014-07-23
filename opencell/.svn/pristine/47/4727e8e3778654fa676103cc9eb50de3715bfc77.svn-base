@@ -1,0 +1,41 @@
+
+\section{Evaluation} \label{sec:evaluation}
+
+We conducted extensive simulations to verify our idea. The available bandwidth traces are taken from one major U.S. 4G network carrier and MIT Sprout Project\cite{Sprout} and we cut each trace into 5-10 minutes long segments, as 80-90\% video sessions are shorter than 10 mins.\cite{ATTVIDEO} 
+
+We choose FESTIVE \cite{Festive} and BBA \cite{BBA} algorithms as baselines for comparison. FESTIVE solves the problem where there is one bottleneck link in the network shared via several video streaming users. It takes the harmonic mean of bandwidth over the last 20 video chunk downloads as reference and adds randomization into video chunk download scheduling to avoid a synchronized congestion. BBA class algorithms rely on video buffer occupancy as an implicit feedback of the network condition for video bit rate selection, and use a linear relation to the buffer occupancy to compute the desired rate. It also has a fast startup phase where it ramps up to a desirable play bit rate based on buffer occupancy growth rate. Throughout our experiments, we set the tunable knot for stability $\alpha =12 $ and bandwidth factor $p=1$, and in BBA we are using BBA(2) with $BufferReservior=90s$, $BufferCushion=136s$ and max buffer $z=240s$. In our approach we set recommended buffer size $t=60s$ and max buffer $z=240s$. Each video chunk is 4 seconds, which is a prevalent length for one major video streaming vendor. 
+
+
+
+\subsection{Oracle Estimator Performance}
+
+\subsubsection{Setup} We take 10 different video encoding rates from Netflix: $\{0.235,\dots, 4.3\}$ Mbps, and 4 different driving traces from Spring and T-Mobile 3G, and Verizon and AT\&T 4G. We cut the trace into 5-10 mins per segment for evaluation and in total there are four 3G and 12 4G segments. The algorithm is using an "oracle" estimator, i.e.,the bandwidth estimator tells us exact bandwidth for the next four seconds with 100 \% accuracy.
+\begin{figure}[t]
+ \includegraphics[width=\linewidth]{ATT.png}
+ \caption{A sample trace from one major 4G network}
+\end{figure}
+
+\begin{table}[t]
+\tiny
+\begin{tabular} {|c |c |c |c |c |}
+\hline
+ Improvement over &BBA(3G) &FESTIVE(3G) & BBA(4G)& FESTIVE(4G)  \\ \hline
+Utilization & 1.00& 1.63 &1.08 & 1.31\\ \hline
+Quality  & 1.09& 1.25 & 1.16&1.24\\ \hline
+Stability   & 2.78 & 1.26&2.1& 3.5\\ \hline
+Interrupts & 5.5& 1& N/A&N/A\\ \hline
+\end{tabular}
+\centering
+\caption{Improvement over video streaming} \label{cap:table}
+\end{table}
+
+\subsubsection{Comparison with Existing Algorithms} 
+We measure four different metrics: link utilization, quality (play efficiency), stability and interrupts. Link utilization measures the total download vs available bandwidth, and the value is one if the link is constantly saturated. Play efficiency measures during the play session, the video downloaded and played vs available bandwidth, in the case without prefetched chunks, download utilization and play efficiency are equal. Stability measures the number of bit rate switches and interrupts measures the occurrence of interruption. Our algorithm outperforms the other two algorithms in all traces in terms of all four metrics, and the summary is in \autoref{cap:table}.
+
+\emph{Prefetched chunk size}: we also compare the prefetched chunk size between BBA and our approach. FESTIVE is not client video buffer based solution and only adds randomized scheduling if it reaches a certain buffer level, we extend that buffer level to $z=240s$ download and see no difference in terms of efficiency, stability or interruption, but we observe a little higher link utilization. Comparing BBA, we have reduced buffer size significantly by 20-30 seconds while having a better performance.
+
+
+\subsubsection{Comparison with Theoretical Max}
+For a formulation in \autoref{subsec:offline}, we use IBM CPLEX to solve the mixed integer problem. We again replayed the 8 traces and the result shows that our approach can achieve 78.5\% close to the efficiency upperbound, and in fact our approach's link utilization is higher than the efficiency due to prefetching, and the gap is from prefetched chunks, which are not counted in the play efficiency. In our offline algorithm one 3G trace has no feasible solution, and the reason is from the zero-interruption constraint, which also justifies the inevitability of interruption occurred in online algorithms. 
+
+

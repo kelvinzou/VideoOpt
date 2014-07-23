@@ -1,0 +1,68 @@
+\section{Design}
+In this section, we explain the reason to choose an \textbf{\emph{end-to-end decision making with in-network knowledge}} model in section \ref{designchoice}, we then explain the our architecture in section \ref{architecture}. 
+%introduce performance metrics in section \ref{metrics} and 
+
+\subsection{Who decides the video streaming?}\label{designchoice}
+For video streaming service decision making, there are three different models: \emph{In-network}, \emph{strictly end-to-end} and \emph{End-to-end with in-network knowledge}. 
+
+\emph{In-network techniques} make decisions for users: it selects the video bit rate and schedule the download for users based on its knowledge of the network condition. However in-network approaches lack the insight of the video play progress, e.g., video buffer occupancy since it does not deal with any video decoding. Aside from technical reasons, here are several pricacy/policy reasons for not doing this: most content providers are using encrypted http connections which ISPs cannot access; users may be concerned about their data budgets and thus not choose high bit rate; or content providers have different video play bit rate policies for different users based on their subsrciption contracts. 
+
+\emph{End-to-end techniques} probe the network condition based on round trip time (RTT) and historical throughput, however existence of the proxy makes the RTT very inaccurate as it splits tcp connections. The dynamic nature of the wireless link makes histroical data unable to capture the link behavior, e.g. the available bandwidth may plummit due to fading effects or handoff and recovers very soon after, current end-to-end approaches fail to react to those scenarios in most cases.
+
+\emph{End-to-end with in-network knowledge} model addresses the above issues: instead of making the decision for the client; the network helps video streaming service make better decisions via offering some key performance metrics about the network condition, such as available throughput and handoff. 
+
+Though an end-to-end with in-network knowledge approach has advantages over the other two, we still need to address the problem of how to expose the in-network knowledge in a least intrusive way in a scalable manner. 
+
+
+
+\begin{table*}
+\begin{tabular} {|c |c |}
+\hline
+Notation&Meaning\\ \hline
+$T$ &the number of time segments\\ \hline
+$M$ &the number of video quality levels (encoding bit rates)\\ \hline
+$R_i$& the rate for the video with $i^{th}$ highest encoding bit rate\\ \hline
+$x_i^t$&indicator of encoding of $R_i$ video play rate at time t, used in offline algorithm \\ \hline
+
+$E$& utilization of used bandwidth over maximum available bandwidth \\ \hline
+$\phi^t$ &the number of quality jumps between two consecutive chunks at time t\\ \hline
+$D^t$ &current download rate at time t\\ \hline
+$H$ &the number of time segments with predicted bandwidth\\ \hline
+$z $ &the maximum buffer size (the number of video chunks) \\ \hline
+$W $ &the unfilled buffer size (the number of video chunks)\\ \hline
+$x_i^{t,l}$&indicator for $l^{th}$ segment with $R_i$ at time t, used in online algorithm \\\hline
+$\tilde{E}$&avergae efficiency, used in online algorithm \\\hline
+$\tilde{\phi}$ &average fluctuation, used in online algorithm \\\hline
+
+
+%0Xhline{3\arrayrulewidth}
+\end{tabular}
+\centering
+\caption{Variables for Optimization}
+%\floatfoot{Before the bold horizontal line are notations for pro}
+\end{table*}
+
+
+
+
+
+
+\subsection{Architecture}\label{architecture}
+
+System Architecture Evolution (SAE) is the core network architecture of LTE wireless communication standard. SAE consists of two parts: Radio Access Network(RAN) and Evolved Packet Core(EPC). EPC has several parts including Mobility Management Entity(MME), Serving Gateway and PDN Gateway. 
+
+The design is a two-tiered system: at lower tier we have bandwidth estimator for each eNodeB. Estimating link channel quality and cell load is much more scalable if doing in at eNodeBs, since there are only hundreds of users at each cell, while aggregated number of users for a SGW can be tens of thousands. Processing the raw information such as RSRQ from eNodeBs and extract it as estimated bandwidth reduces the computational demand at proxy. At the higher tier, the information inferred at eNodeBs are collected at the proxy, and combined with handoff information, we make a final estimation of available bandwidth for each user and then aggregate this piece of information to each UE. The architecture is in figure \ref{cellular}
+
+\begin{figure}[t]\label{cellular}
+\begin{minipage}[b]{\linewidth}
+\centering
+ \includegraphics[width=\linewidth]{cellular.pdf}
+\end{minipage}
+\caption{OpenCell Design}
+\end{figure}
+
+In terms of where to encapsulate the API information, there are three options: (i) inline at TCP/IP layer, (ii) inline at application layer and (iii) using a distinct channel. Each approach has its pros and cons, for example TCP/IP layer does not require DPI but the fields used for encapsulation migh be overwritten deep in the network from middleboxes. Using distinct channel does not suffer either problem but it requires application service providers' cooperation. We are still weighing between the options and leave this as a future problem. 
+
+
+
+

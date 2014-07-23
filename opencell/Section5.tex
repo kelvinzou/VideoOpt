@@ -1,0 +1,195 @@
+\section{Video optimization algorithms}\label{sec:optimization}
+In this section we first define performance metrics in \autoref{subsec:metrics}. We give an offline optimization to define the video quality (efficiency) upper bound where we are aware of the available bandwidth for the whole session in \autoref{subsec:offline}.  Given the exposed APIs, we then design a new video streaming algorithm in section \ref{subsec:online},  to demonstrate the benefits of newly OpenCell.
+\begin{table*}
+\begin{tabular} {|c |c |}
+\hline
+Notation&Meaning\\ \hline
+$T$ &the number of time segments\\ \hline
+$M$ &the number of video quality levels (encoding bit rates)\\ \hline
+$R_i$& the rate for the video with $i^{th}$ highest encoding bit rate\\ \hline
+$x_i^t$&indicator of encoding of $R_i$ video play rate at time t, used in offline algorithm \\ \hline
+$E$& utilization of used bandwidth over maximum available bandwidth \\ \hline
+$\phi^t$ &the number of quality jumps between two consecutive chunks at time t\\ \hline
+$C $ &the estimated capacity\\ \hline
+$B $ &the buffer occupancy(seconds of video) \\ \hline
+$z $ &the maximum buffer size (seconds of video) \\ \hline
+$t $ &the recommended buffer size (seconds of video) \\ \hline
+\end{tabular}
+\centering
+\caption{Variables for Optimization}
+\end{table*}
+
+
+\subsection{Performance Metrics}\label{subsec:metrics}
+To help us understand what extra benefit we can achieve from new information in the cooperative model, we define \emph{three} metrics for the performance of video streaming given a known network. These metrics have been extensively studies in various approaches and here we use them as a benchmark to test our new model\cite{Qava, Avis,VideoMeasurement, Festive}.
+
+\begin{enumerate}
+\item\textit{Quality}: as the video download is chunk-based, a video session can consist of chunks with different qualities (bit rates). The video player should download the chunk with the highest possible quality based on available bandwidth at each download point to give user better quality experience. 
+
+\item\textit{Stability}: From viewer's perspective, constant switches between different qualities are distracting and not desirable. To assess the stability of video streaming, we use the concept of fluctuation: it is the the number of jumps difference between two consecutive sessions, \emph{fluctuation cost} at time t: $\phi^t =  \|i*x_i^t - i*x_i^{t-1}\|$.
+
+\item\textit{Interruption}: Video play should not be halted for fetching video chunks, otherwise user experience will be severely degraded. Video play interruptions affect the user engagement and results in early abandonment of the video play. Video streaming players usually buffer extra chunks to absorb any sudden drop on the link capacity. We use the frequency of interruptions over play time as an indication for interruption; $\beta = \frac{N_{interrupt}}{PlayTime}$.
+\end{enumerate}
+
+\subsection{Metrics Upper Bound}\label{subsec:offline}
+Upper bounds for metrics like stability and interruption are straightforward, they should be zero in an intuitive sense. We will formulate a way to find video quality (play efficiency) upper bound, e.g., given the available bandwidth the whole video play session 1 to T, we ask for the optimal video download and play to best utilize the available bandwidth. We prioritize zero-interruption and we ignore the stability factor. 
+
+To capture zero-interruption, at each time segment the download should always at least be equal to video played (assume at the initial state the client video buffer contains one chunk ahead of playing), i.e., $\sum \limits_{t=1}^\tau R_i * x_i^t\leq\sum\limits_{t=1}^\tau C^t$ for $\forall \tau \in \{1, \dots, T\}$. In terms of measuring the quality (play efficiency) at the end of a video session, the play efficiency equals to the total utilization of the available bandwidth over time period $[1:T]$, we use ratio of the throughput used for video downloading and playing over the available bandwidth: $\bar{E}=(\sum\limits_{t=1}^T D^t)/(\sum\limits_{t=1}^T C^t)$.
+
+\begin{subequations}
+\begin{align*}
+&\textsc{maximize }&\bar{E}\\ 
+&\textsc{Subject to}\\
+&\sum \limits_{t=1}^\tau  \sum \limits_{i=1}^M R_i \cdot x_i^t\leq\sum\limits_{t=1}^\tau C^t& \forall \tau \in \{1, \dots, T\}\\
+&\sum \limits_{i=1}^M x_i^t =1\; and\;\; x_i^t = \{0,1\}&\forall t, \forall i
+\end{align*}
+\end{subequations}
+
+\subsection{Continuous Online Algorithm} \label{subsec:online}
+\begin{algorithm}[ht]
+\SetAlgoLined
+ \KwData{ $C$: Predicted available bandwidth\newline$B'$: Current buffer occupancy\newline$\Delta B$: Buffer occupancy change\newline$R_{cur}$: Current video bit rate}
+ \KwResult{$Rate$: Rate for next chunk }
+$Score = +\infty$\;
+$ R_{rec}=\argmin (\frac{\log(B')}{\log (t)}*\frac{C}{R_{rec}} +  2^{1+\phi} )$\;
+ \uIf{$B'\leq t $}{
+\uIf{$R_{rec}<R_{cur} \&\& \Delta B<0$}{
+$Rate = R_{rec}$
+} 
+\uIf{$R_{rec}>R_{cur} \&\& \Delta B>0$}{
+$Rate = R_{rec}$
+}
+\Else{
+$Rate = R_{cur}$
+}
+
+ }
+\Else{ 
+\uIf{$B'\geq z$}{
+Idle for $(B'-z)$ seconds\;
+}
+\uIf{$R_{rec}<R_{cur} \&\& \Delta B<-\frac{t}{2}$}{
+$Rate = R_{rec}$
+} 
+\uIf{$R_{rec}>R_{cur}$}{
+$Rate = R_{rec}$
+}
+\Else{
+$Rate = R_{cur}$
+}
+}
+
+\caption{Rate Selection} \label{cap:algorithm}
+\end{algorithm} 
+
+In the online algorithm, we restrict ourselves to (i) at most prefetch $z$ seconds video chunks, and (ii) only gives available bandwidth forecast for one chunk time interval. Our algorithm is a joint optimization solution based on both the video buffer occupancy and the estimated bandwidth. The idea of using video buffer size and estimated bandwidth is not new \cite{BBA, Festive}, however we achieve better performance than the existing algorithms by a big margin, benefiting from our accurate estimation algorithm design. % \textbf{We also show that by integrating our KPIs existing algorithm can also improve its video streaming performance, but the improvement is limited by its mismatched design where KPIs were not considered. NOT DONE YET} 
+
+In terms of interruption, unlike quality and stability which can be easily quantized in the algorithm, we need take an alternative view via looking at the video buffer occupancy, in particular we should avoid the video buffer empty. There is a tradeoff between prefetching, quality and interruption. Prefetching many video chunks is (i) not efficient, as it conservatively downloads more video chunks and play at lower quality; and (ii) wasteful if the viewer abandons the vide session. We factor in the video buffer occupancy to adjust requested download bit rate. If the buffer occupancy is high we can take a risk to download at higher rate beyond the estimated bandwidth and if the buffer occupancy is low we may conservatively download at lower rate than estimation. The video buffer occupancy can be used as a discount/inflation factor for the estimated bandwidth: when the buffer occupancy is low, we use the discounted bandwidth estimation and download more chunks with lower rates to fill the buffer, when the buffer occupancy is high we use the inflated bandwidth to drain the buffer a little faster. We define inflation as a concave function: $f(B)= \frac{\log(B)}{\log (t)}$, where t is the recommended equilibrium buffer size.  
+
+For stability, we use exponential penalty for play bit rate jump and define the fluctuation $COST = 2^{1+\phi}$. The reason is to discourage but not to disallow a jump of more than one level. For efficiency, we take the inverse of link utilization over inflated bandwidth to penalize the under-utilized bandwidth: $\frac{1}{E} = \frac{\log(B')}{\log (t)}*\frac{C}{i} $. Combined with fluctuation cost, we have a score function $Score= \frac{\log(B')}{\log (t)}*\frac{C}{i} +  2^{1+\phi} $. 
+
+
+We use the the bit rate with $\min(Score)$ as recommended video bit rate. However we delay the video bit rate step up or step down based on $\Delta B$, $Score$ function absorbs low and median bandwidth fluctuation and the following mechanism absorbs high fluctuation via looking into the client buffer. We make final decision about the requested video quality using $B$ buffer occupancy and $\Delta B$ buffer change from last chunk download.  We first divide the buffer occupancy into two zones: risky $[0,t]$ and safe $[t,z]$. In risky zone, if the client video buffer is depleting, $\Delta B>0$, we defer the video bit rate stepping down, as it may just be a short period of low throughput, and vice versa. When $B$ is in safe zone we take more risk and step down if $\Delta B <-\frac{t}{2}$ which means if the buffer is depleting substantially and a preemptive action is needed before stepping into risk zone. 
+  
+The online algorithm continuously estimates the bandwidth for the next time segment and then computes the cost score for each video bit rate, it selects the bit rate based on $Score$ and $\Delta B$, as shown in \autoref{cap:algorithm}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Comment out, leave in case for future use!
+
+\begin{comment}
+
+\begin{algorithm}[h]
+\SetAlgoLined
+ \KwData{ $C$: Prediction available bandwidth\newline$C'$: Prediction lower bound with 90\% confidence\newline$B'$: Current buffer occupancy\newline$t_s$: Last time video has switched bit rate\newline$i'$: Current video bit rate}
+ \KwResult{$Rate$: Rate for next chunk}
+\uIf{$\frac{R_1}{C} \leq 1$}{
+$Rate = R_1$\;} 
+\Else{
+$Score =0$\;
+\For{i \leftarrow 1 to M} {
+$\mathbb{E}[\Delta B] = \ceil{ (\frac{R_i}{C'}-1)\cdot 4} $\;
+$\phi =|i-i'|$\;
+$Score_i = \frac{R_i}{C} -\mathbb{E}[\Delta B] \cdot \frac{1}{B'} - \phi \cdot EXP(t_s-t_{now})$\;
+\uIf{$Score\leq Score_i$}
+{
+$Score=Score_i$\;
+$Rate = R_i$} 
+}
+}
+\caption{Rate Selection}
+\end{algorithm}
+
+
+for (i) is that the cost of making bit rate jump should depend on when is the last time we make bit rate change. Tht cost for bit rate change should be less if the last bit rate change is long time ago. The reason for (ii) 
+\begin{algorithm}[h]
+\SetAlgoLined
+ \KwData{ $C$: Link capacity for next 4 seconds\newline $B_{now}$: Current Buffer Occupancy\newline$V$: Reservior Size\newline $\Delta B$: buffer occupancy change in last time segment}
+ \KwResult{$Rate$: Rate for next chunk }
+% \BlankLine
+\uIf{$B_{now}>V$}{
+$Rate$ = BBA\_steady()} 
+\Else{
+$Rate_{infer} = \min\{Rate_{max}, 0.8*C \}$\;
+\emph{if the buffer is filled at a certain pace, pick the inferred rate}\;
+\uIf{$\Delta B >0.3(1-\frac{B_{now}}{V})*V$}{
+$Rate = Rate_{infer}$
+} \Else {\emph{Othewise, pick one level below}
+$Rate = \max\{Rate_{min}, Rate_{infer-1}\}$
+}
+}
+Update(Cushion Size, Reservior Size)\;
+\caption{BBA(2) PLUS Rate Selection}
+\end{algorithm}
+
+\begin{algorithm}[h]
+\SetAlgoLined
+ \KwData{ $C$: Link capacity for next 4 seconds\newline $b_{ref}$: Computed bit rate\newline$b_{cur}$: Current play bit rate\newline$BitChangeTime$: last time bit rate change }
+ \KwResult{$Rate$: Rate foralso next chunk}
+ //Pick the bit rate right below link capacity, 0.9 is a factor for encoding overhead.
+$b_{ref}= 0.9*\lfloor C \rfloor$\;
+
+\uIf{$TimeNowlookahead-BitChangeTime>20$}{
+\uIf{$b_{ref}\not = b_{cur}$}
+{
+$BitChangeTime = TimeNow$
+}
+\Return{$b_{ref}$}
+} \Else{
+$ score_{ref} = score_{e}(b_{ref}) +\alpha*score_{s}(b_{ref})$\;
+$score_{cur} = score_{e}(b_{cur}) +\alpha*score_{s}(b_{cur})$
+\uIf{$score_{ref} > score_{cur}$}{
+$BitChangeTime = TimeNow$\;
+\Return{$b_{ref}$}
+} \Else {\Return{$b_{cur}$}}
+}
+\caption{FESTIVE PLUS Rate Selection}
+\end{algorithm}
+
+
+\subsubsection{FESTIVE+}
+FESTIVE(Fairness, Efficient and Stable adapTIVE algorithm) algorithm\cite{Festive} assumes the following: there is a single bottleneck link in the network, which would be the wireless link in the cellular network, and the video downloading is very periodic, i.e., it has a noticeable on-off phase in terms of video chunk downloading. It has three components: 
+\begin{enumerate}
+ \item Select when the next chunk will be downloaded: it uses randomization of download start time ($t_{i}^{start}$) to avoid potential synchronization of congestion in the bottleneck link and increases the bandwidth estimation confidence. 
+ \[
+   t_{i+1}^{start}= 
+\begin{cases}
+    t_{i}^{end}, \; \;&\text{if}\;\; buffer_i < randbuf_i; \\
+    t_{i}^{end}+ &buffer_i-randbuf_i,\;\; \text{  otherwise}
+\end{cases}
+\]
+
+ \item Select a suitable bitrate for the next chunk: it uses delayed updates-if there has no play bit rate change in the last 20s, the streaming is free to change bit rates based on its bandwidth estimation. If an bit rate change is needed within 20 seconds, it has an efficiency cost $score_{e}{(b)}=|\frac{b}{\min{(w, b_{ref})}} -1|$, and a stability cost $score_{s}(b)=\begin{cases}
+   2^n+1, \; \;&\text{if}\;\; b=b_{ref}; \\
+     2^n, \; \;&\text{if}\;\; b=b_{cur};\\
+\end{cases}$, and the combined score is linked by a tunable parameter $\alpha$, $b=argmin (score_{e}(b) +\alpha*score_{s}(b))$.
+ 
+ \item Estimate the network bandwidth: it takes harmonic mean over the last 20s as an estimation for future bandwidth, since it is a more stable and conservative estimation.
+ 
+\end{enumerate}
+\emph{Our changes:} we make only one small change in their algorithm; (i) we replace harmonic mean with our KPI, which could be intepreted as a ground truth or very close estimation;(ii) we turn off the randomization since FESTIVE uses it to avoid inaccurate estimation while our model does not suffer this problem. We name our algorithm FESTIVE PLUS.
+
+\end{comment}
+
+
+ 

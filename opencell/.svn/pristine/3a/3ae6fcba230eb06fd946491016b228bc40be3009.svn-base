@@ -1,0 +1,62 @@
+\documentclass{sig-alternate}
+\usepackage{url}
+\usepackage{framed}
+\usepackage{amsmath}% http://ctan.org/pkg/amsmath
+\usepackage[ruled]{algorithm2e}
+\usepackage{graphicx}
+\usepackage{comment}
+
+\begin{document}
+
+\title{OpenCell: Open KPIs for Ajusted Bit Rate Video Streaming}
+\numberofauthors{4} 
+\author{%
+		\alignauthor X. Kelvin Zou\\
+		\affaddr{Princeton University}\\
+		 \email{xuanz@princeton.edu}
+		\and
+		\alignauthor Xin Jin\\
+       		 \affaddr{Princeton University}\\
+        		\email{xinjin@princeton.edu}  
+		\and
+      		 \alignauthor Rittwik Jana\\
+      		 \affaddr{AT\&T Lab}\\
+       		\email{rjana@research.att.com}
+		\and
+        		\alignauthor Jennifer Rexford\\
+      		 \affaddr{Princeton University}\\
+      		 \email{jrx@princeton.edu} 
+}
+\maketitle
+
+%\begin{abstract}
+%...
+%\end{abstract}
+\input{Abstract.tex}
+\input{Section1.tex}
+\input{Section2.tex}
+\input{Section3.tex}
+\input{Section4.tex}
+\input{Section5.tex}
+\input{Section6.tex}
+ 
+ 
+
+
+
+
+
+
+
+\section{related work}
+
+
+Approaches like AVIS \cite{Avis} sits at the gateway and have its own video chunk download scheduling system. The scheduler strikes a balance between fairness, efficiency and stability among users in the same cell. However in-network approaches lack the insight of the video play progress, e.g., video buffer occupancy. In addition, AVIS specifically focuses on the fairness of bandwidth not OFDMA resource blocks, and only prefetches one video chunk at each time. This may lead to starvation of users with good link quality and/or may have interruptions if the available bandwidth drops below minimum play bit rate. 
+ 
+ \input{Conclusion.tex}
+ 
+ 
+\bibliographystyle{acm}
+\bibliography{references} 
+
+\end{document}

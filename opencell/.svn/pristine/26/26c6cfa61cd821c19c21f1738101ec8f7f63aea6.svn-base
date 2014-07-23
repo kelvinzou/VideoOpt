@@ -1,0 +1,13 @@
+Outline for the workshop
+
+1. Explain motivation and background
+
+2. Show the predictability of link quality and CellLoad. and explain how qualitatively that predicts the bandwidth for each user
+
+3. Introduce video streaming, and say that given that predictability, we can simulate the available bandwidth and then we show that given the predictability we can fare better in terms of video streaming. 
+
+4. Run experiments with our own algorithms and the trace and show the improvement
+
+2. Elaborate on the architecture part.
+
+3.

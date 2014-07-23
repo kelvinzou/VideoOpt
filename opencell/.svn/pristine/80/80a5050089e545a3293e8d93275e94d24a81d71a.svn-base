@@ -1,0 +1,120 @@
+\section{Video optimization algorithms}
+In this section we first define performance metrics in section \ref{metrics}. We give an offline algorithm where we are aware of the available bandwidth and unlimited amount of video buffer can be prefetched in section \ref{offline}. We then propose our new video streaming algorithm in section \ref{online}, it is a joint optimization of both video buffer occupancy and bandwidth estimation. 
+
+\subsection{Performance Metrics}\label{metrics}
+To help us understand what extra benefit we can achieve from new information in the cooperative model, we define \emph{three} metrics for the performance of video streaming given a known network. These metrics have been extensively studies in various approaches and here we use them as a benchmark to test our new model\cite{Qava, Avis,VideoMeasurement, Festive}.
+
+\begin{enumerate}
+\item\textit{Efficiency}: DASH based adaptation mechanisms have several different qualities (bit rates) for a single video. Since the video download is chunk-based, a video session can consist of chunks with different qualities. The video player will stitch consecutive chunks together, and the chunks can have different bit rates. The video player should download the chunk with the highest possible quality based on available bandwidth at each download point to give user better quality experience. To measure the efficiency of a video session, we use ratio between the amount of bandwidth used for video downloading and the maximum available throughput: $\bar{E}=(\sum\limits_{t=1}^T D^t)/(\sum\limits_{t=1}^T C^t)$.
+
+\item\textit{Stability}: From viewer's perspective, constant switches between different qualities are distracting and not desirable. To assess the stability of video streaming, we use a average fluctuation of bit-rate switches perceived by the viewers during a video session, and the fluctuation is the the number of jumps difference between two consecutive sessions, \emph{fluctuation cost} at time t: $\phi^t =  \|i*x_i^t - i*x_i^{t-1}\|$, and the average jump frequency $\bar{\phi} =(\sum\limits_{t=1}^{T-1} \phi^t)/(PlayTime) $ over the entire play session, the lower the $\bar{\phi}$ the better.
+
+\item\textit{Interruption}: Video play should not be halted for fetching video chunks, otherwise user experience will be severely degraded. Video play interruptions affect the user engagement and results in early abandonment of the video play. Video streaming players usually buffer extra chunks to absorb any sudden drop on the link capacity. We use the frequency of interruptions over play time as an indication for interruption; $\beta = \frac{N_{interrupt}}{PlayTime}$.
+
+\end{enumerate}
+
+\subsection{Offline Optimization Formulation}\label{offline}
+We first formulate the optimization problem in an offline manner, i.e., given the available bandwidth the whole video play session 1 to T, we ask for the optimal video download and play. 
+
+Our design prioritizes interruption avoidance and uses it as hard constraints, in other words at each time segment the download should always at least be equal to video played (assume at the initial state the video play buffer contains one chunk ahead of playing), i.e., $\sum \limits_{t=1}^\tau R_i * x_i^t\leq\sum\limits_{t=1}^\tau C^t$ for $\forall \tau \in \{1, \dots, T\}$. The optimization problem asks for the best chunk selection for each time segment t that maximizes the performance objective.
+
+\textit{Performance Objective}: we define the utility as a function of efficiency and stability, $U = \bar{E} - \alpha * \bar{\phi} $, where $\bar{E}$ represents the average efficieny and $\bar{\phi}$ represents the instability, both are taken from definition in section \ref{metrics}. $\alpha$ here is a tunable parameter to tradeoff between efficiency and instability. So the formulation is the following: \newline
+\begin{subequations}
+\begin{align*}
+&\textsc{maximize }&\bar{E} - \alpha * \bar{\phi}   \\ 
+&\textsc{Subject to}\\%\hspace{-.19in}
+&\sum \limits_{t=1}^\tau  \sum \limits_{i=1}^M R_i *x_i^t\leq\sum\limits_{t=1}^\tau C^t& \forall \tau \in \{1, \dots, T\}\\
+&\sum \limits_{i=1}^M x_i^t =1\; and\;\; x_i^t = \{0,1\}&\forall t, \forall i
+\end{align*}
+\end{subequations}
+
+This is a standard mix integer programming problem (MIP), and for a three-hour long video(means thousands of variables) the problem can be solved within a few seconds by tools like IBM ILOG CPLEX. This optimization problem only tells us each chunk with which play bit rate to download. In terms of when to download, we can constantly saturate the link, and the download requests consist of a queue of video chunks with certain rates. 
+
+
+\subsection{Continuous Online Algorithm} \label{online}
+\begin{comment}
+In the online algorithm, we take care of two relaxed assumptions in the offline algorithm: (i) it is hard to have a foresight of the available bandwidth for the whole video session; (ii) we cannot have unlimited chunk prefetching in case of video early abandonment. We assume we can forcast next $H$ time segment and $H$ is often small in practice; e.g., if $H=3$, the prediction already covers tens of seconds. 
+%Here we allow a variable buffer window size z, which means we can hold minimum 1 chunk and maximum z chunks ahead of play progress. 
+
+Since the number of the time segments is $z$ and current unfilled window size is $W$, so we need a planning for $H+z-(z-W)=W+H$ chunks download, which is the upperbound of chunks to be downloaded in H time segments. The continuous algorithm functions as the following: at each time segment $t$, it computes the local optimal schedule for downloading $L\leq W+H$ chunks in $H$ time segments and such that it maximizes the objective function within certain constraints, and we pick the optimal schedule and use its scheduled action at $t$. We iteratively compute the best schedule for time  $s=t+1, \dots$ at each time segment $s$ and keep udpating the window size continuously. The idea falls in the same class of Viterbi algorithm in Markov model.
+\end{comment}
+In this section we show that our exposed KPIs can be easily integrated into three existing end-to-end based video streaming algorithms, FESTIVE, BBA, and QDASH. Developed by several different research institutions and video streaming vendors, these algorithms represent a wide range of probing then deciding algorithms.\cite{QDASH, Festive} We made a small amount of change in those algorithms to absorb the extra KPI to help them make decisions, we present them as FESTIVE+, BBA+ and QDASH+. On average our change is less than 80 lines of code, comparing to 300 to 500 plus lines of code in these algorithms. 
+\subsubsection{BBA+}
+BBAs(Buffer-Based Algorithms) is a class of algorithms developed and used by Netflix. The idea is that given the complicated interactions between different layers, at video play steady state we can use the occupancy of video buffered in the streaming player as an indicator for video bit rate selection. BBAs assumee the video download is continous. We use the best algorithm BBA(2) as a base model. BBA(2) has two parts:
+\begin{itemize}
+ \item Steady state: the bit rate selection is a piecewise linear function of the buffer occupancy(seconds of video ahead of playback time), it stays at downloading minimum bit rate if the buffer occupancy in reservior range, grows linearly at cushion range maximum bit, and reaches maximum if beyond cushion range until it reaches maximum buffer, where it stops downloading. The reservior size is function of effective video encoding rate which fluctuates around the average encoding rate.
+ 
+ \item Startup state: everytime the video starts, the buffer starts from empty, if we use the same function from steady state, it will stay at minimum bit rate until the buffer grows more than reservior. To address this problem, BBA(2) makes a fast start algorithm based on the pace of video buffer growth. 
+\end{itemize}
+\emph{Our changes:} BBA(2) algorithm takes more than 30 seconds to ramp up to stable bit rate, so we decide to change the start up phase to make it to reach stable bit rate faster. We also adjust both reservior and cushion size, and thus the slope for bit rate selection based on historical and KPIs. 
+
+\begin{algorithm}[h]
+\SetAlgoLined
+ \KwData{ $C$: Link capacity for next 4 seconds\newline $B_{now}$: Current Buffer Occupancy\newline$V$: Reservior Size\newline $\Delta B$: buffer occupancy change in last time segment}
+ \KwResult{$Rate$: Rate for next chunk }
+% \BlankLine
+\uIf{$B_{now}>V$}{
+$Rate$ = BBA\_steady()} 
+\Else{
+$Rate_{infer} = \min\{Rate_{max}, 0.8*C \}$\;
+\emph{if the buffer is filled at a certain pace, pick the inferred rate}\;
+\uIf{$\Delta B >0.3(1-\frac{B_{now}}{V})*V$}{
+$Rate = Rate_{infer}$
+} \Else {\emph{Othewise, pick one level below}
+$Rate = \max\{Rate_{min}, Rate_{infer-1}\}$
+}
+}
+Update(Cushion Size, Reservior Size)\;
+\caption{BBA(2) PLUS Rate Selection}
+\end{algorithm}
+
+\begin{algorithm}[h]
+\SetAlgoLined
+ \KwData{ $C$: Link capacity for next 4 seconds\newline $b_{ref}$: Computed bit rate\newline$b_{cur}$: Current play bit rate\newline$BitChangeTime$: last time bit rate change }
+ \KwResult{$Rate$: Rate foralso next chunk}
+ //Pick the bit rate right below link capacity, 0.9 is a factor for encoding overhead.
+$b_{ref}= 0.9*\lfloor C \rfloor$\;
+
+\uIf{$TimeNow-BitChangeTime>20$}{
+\uIf{$b_{ref}\not = b_{cur}$}
+{
+$BitChangeTime = TimeNow$
+}
+\Return{$b_{ref}$}
+} \Else{
+$ score_{ref} = score_{e}(b_{ref}) +\alpha*score_{s}(b_{ref})$\;
+$score_{cur} = score_{e}(b_{cur}) +\alpha*score_{s}(b_{cur})$
+\uIf{$score_{ref} > score_{cur}$}{
+$BitChangeTime = TimeNow$\;
+\Return{$b_{ref}$}
+} \Else {\Return{$b_{cur}$}}
+}
+\caption{FESTIVE PLUS Rate Selection}
+\end{algorithm}
+
+\subsubsection{FESTIVE+}
+FESTIVE(Fairness, Efficient and Stable adapTIVE algorithm) algorithm\cite{Festive} assumes the following: there is a single bottleneck link in the network, which would be the wireless link in the cellular network, and the video downloading is very periodic, i.e., it has a noticeable on-off phase in terms of video chunk downloading. It has three components: 
+\begin{enumerate}
+ \item Select when the next chunk will be downloaded: it uses randomization of download start time ($t_{i}^{start}$) to avoid potential synchronization of congestion in the bottleneck link and increases the bandwidth estimation confidence. 
+ \[
+   t_{i+1}^{start}= 
+\begin{cases}
+    t_{i}^{end}, \; \;&\text{if}\;\; buffer_i < randbuf_i; \\
+    t_{i}^{end}+ &buffer_i-randbuf_i,\;\; \text{  otherwise}
+\end{cases}
+\]
+
+ \item Select a suitable bitrate for the next chunk: it uses delayed updates-if there has no play bit rate change in the last 20s, the streaming is free to change bit rates based on its bandwidth estimation. If an bit rate change is needed within 20 seconds, it has an efficiency cost $score_{e}{(b)}=|\frac{b}{\min{(w, b_{ref})}} -1|$, and a stability cost $score_{s}(b)=\begin{cases}
+   2^n+1, \; \;&\text{if}\;\; b=b_{ref}; \\
+     2^n, \; \;&\text{if}\;\; b=b_{cur};\\
+\end{cases}$, and the combined score is linked by a tunable parameter $\alpha$, $b=argmin (score_{e}(b) +\alpha*score_{s}(b))$.
+ 
+ \item Estimate the network bandwidth: it takes harmonic mean over the last 20s as an estimation for future bandwidth, since it is a more stable and conservative estimation.
+ 
+\end{enumerate}
+\emph{Our changes:} we make only one small change in their algorithm; (i) we replace harmonic mean with our KPI, which could be intepreted as a ground truth or very close estimation;(ii) we turn off the randomization since FESTIVE uses it to avoid inaccurate estimation while our model does not suffer this problem. We name our algorithm FESTIVE PLUS.
+
+
+
+
+ 

@@ -1,0 +1,26 @@
+\section{Related Work} \label{sec:relatedwork}
+\emph{Video streaming:} in-network approaches like AVIS \cite{Avis} have its own video chunk download scheduler and it strikes a balance between fairness, efficiency and stability among users. However it overwrites the user request and fails to handle handoff situations. In addition, AVIS lacks the insight of client video buffer occupancy and only prefetches the next chunk, which may lead to excessive rebuffering. 
+
+\emph{Network API/KPIs:} PANE \cite{PANE} extracts SDN APIs and exposes it to users to achieve a better efficiency, security or predictable behavior. Hadoop-OFN (openflow enabled) \cite{INFOBOX} uses SDN to query performance metrics and adjust the network scheduler to achieve higher Hadoop task performance. However both are domain specific approaches for datacenter or enterprise network.
+ 
+
+
+
+\begin{comment}
+\section{Background}
+We explain  LTE network architecture and scheduling in \autoref{subsec:ltenet} and the video streaming service in \autoref{subsec:streaming}.
+\subsection{LTE Network}\label{subsec:ltenet}
+
+\emph{The architecture:} System Architecture Evolution (SAE) is the core network architecture of LTE wireless communication standard. SAE consists of two parts: Radio Access Network(RAN) and Evolved Packet Core(EPC). EPC has several parts including Mobility Management Entity(MME), Serving Gateway and PDN Gateway. 
+
+\emph{The proportional fair scheduler:} the LTE networks are using Orthogonal Frequency-Division Multiuser Access(OFDMA) scheme to achieve high spectrum efficiency. To achieve multiuser diversity, eNodeBs are running variations of proportional fair scheduling system. A basic \textit{proportional fair scheduler} works as the following: eNodeBs obtain the feedback from each user about their instantaneous channel quality conditions (CQ) in terms of encoding rate per resource block, and take the ratio between it and historial mean of CQ and pick the user with the maximum ratio. In a static model over a long term, each user will get 1/N share of resource blocks if N is the static number of users in the cell, a dynamic model also has a similar result\cite{PFINFOCOM}. The maximum bandwidth for each user in a cell is a function of: $T$-number of resource blocks in the cell, $N$-number of users in the cell, and $\mathbf{CQ}$-channel quality vector for all users; so maximum bandwidth vector for all users $\mathbf{BW} = f(T, N, \mathbf{CQ})$. We do not directly address $f(T, N, \mathbf{CQ})$ function in this paper as it is vendor-specific and mostly it is close to the basic PF scheduler. In the rest of the paper we assume a simple PF scheduler, that is $\mathbf{BW} = f(T, N, \mathbf{CQ})=\frac{T}{N}*\mathbf{CQ}$. Among the three variables, $T$ is predetermined by the hardware, $N$ and $\mathbf{CQ}$ are the two factors we need to predict. 
+
+\subsection{Video Streaming}\label{subsec:streaming}
+Two unique features for state-of-the-art video streaming technique are (i) \emph{chunk-based download and play}, and (ii) \emph{dynamic play bit rate selection}. 
+
+\emph{Chunk-based Download and Play:} most video streaming service providers including Netflix and YouTube are downloading and playing in chunks. A video is divided into hundreds to thousands of chunks, and each chunk is several seconds long. The download has an on-off behavior\cite{OnOff}: e.g., the client keeps moving the download point based on play progress, the download can be ahead of play progress with a relatively constant time window (usually at minute level), or dynamic window size(e.g., for YouTube it is $0.25 * PlayTime$) so the video play sessions can be resilient to some network congestion and temporary low throughput. It downloads the whole chunk when the chunk falls in the download sliding window, and cannot play the chunk until the chunk is fully downloaded. 
+
+\emph{Dynamic Play Bit Rate Selection:} each video chunk is encoded in several bit rates, a higher bit rate means a better quality. Video streaming applications select a certain bit rate for each chunk to download, based on some utility function of both efficiency and stability. A video play session can consist of chunks with different bit rates and the video player will stitch the chunks together seamlessly. 
+
+A video streaming application essentially needs to make two decisions: when and which play bit rate to download and play. 
+\end{comment}

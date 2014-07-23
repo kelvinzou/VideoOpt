@@ -1,0 +1,82 @@
+\section{Introduction}
+Video streaming has been the dominant factor in cellular networks, it consists
+up to 40\% of the traffic peak load~\cite{LTENetwork, VideoMeasureatt}. Although
+the video streaming has become one big part of cellular networks, the
+performance for video streaming is not promising. Unique characteristics from
+the cellular networks, such as bandwidth un-predictability over short period of
+time due to handoff or fading effects, create a challenge for a satisfactory
+video streaming service. 
+
+Most of the current video streaming services are using DASH (\textbf{D}ynamic
+\textbf{A}daptation \textbf{S}treaming over \textbf{H}TTP)\cite{DASH} based
+end-to-end approaches. It uses chunk-based downloading and adjusts its video
+streaming bit rate based on the play progress and the monitored bandwidth. The
+application stitches video chunks together to provide a continuous playback.
+However most of the video streaming service are not tailored for cellular networks, and they suffer from a conservative estimation and oscillation.\cite{BBA,Festive} The reason for this is the lack of knowledge for the network condition. 
+Some low layer connection information such as signal information is hard to access from application layer without root access.
+For TCP throughput, the application need constantly saturate the link for a better estimation
+and the estimation takes a long time to converge, which can be hardly used in video streaming case where downloading is periodical.\cite{OnOff,Sprout}  \xin{Not sure if this is correct. Can they be collected from end
+hosts? Cite some papers or explain why it's hard}, \kelvin{ how is this sounds like now?}
+
+On the other hand, a cellular network service provider has much better knowledge of the connection
+conditions for the clients via monitoring, as the last mile has long been identified as the
+bottlenck.\cite{LASTMILE} Cellular ISPs also know the number of
+active users in each cell and the scheduling system, and thus can make more
+precise predictions in terms of available bandwidth. In fact, many key statistics can be easily and some are
+already being collected within carriers. 
+
+
+Nevertheless in-network alone cannot make decisions for the video streaming. First it
+lacks the application knowledge in terms of play progress and client video
+buffer occupancy. Second different users may have different subscription
+policies w.r.t. video streaming service and streaming service providers may
+hesitate to share it with ISPs. Users may also have data budget concerns. Last
+but not least, it may require the modification of the cellular scheduling system and that
+may not be practical since most are using pre-installed
+vendor-specific scheduler. 
+
+To address the issue, we propose a novel cellular network design that exposes our in-network information to the video streaming service. By doing so video streaming service can play at higher quality and reduce the amount of chunk prefetching. There are three main contributions in this paper:
+\begin{itemize}
+\item Design a scalable architecture to compute KPIs(key performance indicators) and expose them to video streaming providers on the fly.
+\item Conduct a measurement study to show the predictability of user channel quality and cell loads. 
+\item Design an algorithm to show that by using the KPIs we have a significant improvement in video streaming service.
+\end{itemize}
+
+This paper briefly covers related work in \autoref{sec:relatedwork}. It introduces a scalable architecture to compute the bandwidth and expose the KPIs to the service provider in \autoref{sec:Architecture} and then we conduct a preliminary measurement study of predictability of available bandwidth in \autoref{sec:prediction}. We propose our new optimization algorithm in \autoref{sec:optimization} and show our results in \autoref{sec:evaluation}. This paper concludes in \autoref{sec:conclusion}. 
+
+
+
+\begin{comment}
+The traffic volume and the network speed for cellular networks have grown fast in the recent years. The high link speeds from 3G/4G networks have led to broader application services; video streaming has become the Number One traffic in cellular networks: it consists half of the traffic during peak load. \cite{LTENetwork, LTEMeas,VideoMeasureatt}
+
+Though video streaming becomes a vital part of the cellular networks, the performance for video streaming is not promising. Unique characteristics from the cellular networks create an impediment for video streaming services to provide satisfactory services. The wireless link is highly dynamic due to mobility and signal interferences. Events like handoff also greatly affects the user experiences.
+
+State-of-the-art video streaming services usually use probing to detect and estimate the network conditions, and take those measurements into account for adjustments during streaming services. However the designs are more orientated for wireline networks and do not fit well in cellular networks, e.g., in mobile networks the bandwidths can quickly drop to very low or even zero due to handoff or fading effects, so historical throughput cannot provide any insight in terms of future available throughput. Additionally, instrumentation of middleboxes leads to inaccurate probing, services fail to infer the in-network conditions via looking at TCP stack information, such as round trip time, congestion window or receive window. 
+
+However special features of cellular networks also provide us with unique opportunities. Previous studies have shown that the last mile has long been the bottleneck for cellular network\cite{LASTMILE}, this means that ISPs can characterize the mobile network conditions via monitoring the last hop wireless channel at base stations. The special feature of mobile network essentially creates a tale of two cities: on the one hand mobile network service providers are capable of knowing users' network conditions clearly, on the other hand the content providers are often confused by sporadic cellular network behaviors. We ask for a different internet-application service interactive model for better video streaming. 
+
+In this paper we propose a new design of cellular architecture-OpenCell. Instead of blindfolding application service providers and give them the internet service as a black box, we expose the network conditions to application service providers: in particular we can expose estimated available bandwidth to streaming service providers, so they can make a joint decision based on application play conditions(such as play buffer occupancy) and network conditions. There are a few challenges in the design space, includes estimating the available bandwidth, exposing the APIs to streaming service providers and adding the APIs to video streaming algorithms. 
+
+There are three main contributions in this project:
+\begin{enumerate}
+\item Conduct a measurement study to show predictability of future bandwidth
+\item Propose a scalable architecture to expose the APIs
+\item Design a new video streaming algorithm and show significant improvement in the new model
+\end{enumerate} 
+
+This paper is organized in the following way: we first conduct a large scale measurement study and show blah...
+
+% video streaming with the help of exposed knowledge about network conditions, in particular available throughput and handoff information. The available throughput, in practice can be computed via the load on each cell, the number of users in the cell and the link quality for each user. The available can be predicted or enforced through scheduler. Handoff are usually initialized by UEs, and are handled by MME(Mobility Management Entity) and UE together. We show that if we have the knowledge, the video play session will ...
+
+
+\begin{comment}
+Outline of the project:
+\begin{itemize}
+\item Conduct a measurement study to show the highly dynamic wireless links in cellular network and dynamic utilization of eNodeBs, and reveal the opportunities of improving video streaming service. 
+%\item Apply machine learning techniques to predict the future link quality and maximum achieveable bandwidth for each user, and convert it to KPIs(Key Performance Indicators). 
+%\item Design a scalable architecture to make predictions, compute KPIs and expose them to video streaming providers on the fly.
+\item Design an algorithm to show that by using the KPIs we have significant improvement in video streaming service.
+\end{itemize}
+\end{comment}
+
+

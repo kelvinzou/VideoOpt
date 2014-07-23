@@ -1,0 +1,63 @@
+
+\section{Architecture} \label{sec:Architecture}
+This section starts with the architecture of a scalable prediction system in
+\autoref{subsec:prediction_system}, and then we discuss the feasibility and
+advantages of inline method to expose APIs in \autoref{subsec:exposingAPI}.
+\subsection{Scalable Prediction System} \label{subsec:prediction_system} We
+propose a two-tiered system to implement an KPI computing system. We have a
+proxy sitting at dataplane; and local and central bandwidth estimator at control
+plane. The local bandwidth estimator communicates with eNodeBs and it takes
+channel quality, number of active users, cell load and users' queue size etc.
+information as inputs and compute the available bandwidth for each user. A local
+bandwidth estimator is logically distributed in the RAN and thus can be easily
+scale-out. Meanwhile the central bandwidth estimator sits in the core network
+and it summarizes local BW estimation and MME Mobility information to compute
+the final bandwidth prediction for a user. In most cases one local estimation is
+enough, however in cases like handoff we need choose among several local
+estimations. Central estimators can be
+scale-out with MMEs. Our architecture is generic and able to integrate into both
+3G and 4G networks. 
+
+Once the computation work is finished, the central estimator sends the
+information to the proxy. 
+ 
+\begin{figure}[tb]\label{fig:Architecture}
+ \includegraphics[width=\linewidth]{architecture2.pdf}
+ \caption{Architecture for KPI Computing And Feedback}
+\end{figure}
+
+
+\subsection{KPI Exposure}\label{subsec:exposingAPI}
+Current cellular networks already deploy proxies in the core network for
+pacing purpose.\cite{UntoldMiddleBoxStory} It splits the TCP connection into two: server$\leftrightarrow
+$proxy and proxy$\leftrightarrow $client. We can utilize the proxy for KPI
+exposure. \emph{Sending to the server or the client?} We argue that exposing the
+KPIs to the server causes less security concerns and network congestion. It also reduces the traffic in
+the core network as sending to the client requires central estimator to send
+back to local ones again. The downstream link carries majority of the traffic, upstream only has a small fraction of the traffic for feedback data. 
+However since we let the server decide and the server in practice
+may send back to the client's video play application. 
+
+In terms of encoding the KPIs, there are several options: (i) in TCP; (ii) in
+HTTP; and (iii) through a new connection. Inline methods have advantages over
+new connection. First new connection method doubles the connections between the
+server and the proxy. Second in practice CDNs are using public IPs, and the
+video streaming connection and metric exposure connection may be directed to different private servers in CDN
+load balancer. Inline methods both have some disadvantages. 
+If we encode it into TCP option field, any middleboxes on the Internet may modify/drop the option field. 
+The HTTP header may not be accessible since many streaming
+services are using secure encypted HTTP. Modifying HTTP header also requires DPI, which has a higher overhead than changing TCP.
+\begin{figure}[t]\label{fig:Datagram}
+ \includegraphics[width=\linewidth]{datagram.pdf}
+ \caption{Datagram for exposing KPIs, it can be encoded in either option field or sequence number}
+\end{figure}
+
+One alternative approach is to encode in sequence number, if both content providers and cellular service providers are willing to collaborate. Since sequence number filed has 32 bits, we can reserve 8 bits for KPI exposure. In particular, we can use 7 bits for a floating number and 1 bit for handoff. Seven bits can be divided into integer and fractional parts, 3 bits for integer and 4 bits for fractional, it has a precision of 0.063 Mbps, or 63 Kbps and a maximum value of 8.94 Mbps, which is sufficient for today's video streaming bit rate selection where the range is bewteen 0.2 to 4 Mbps.
+At the same time it can still support 16 million packets before wrapping around. The bandwidth estimation is close to random so it holds the random feature of initial sequence number.
+
+\xin{Would any middleboxes on the
+Internet (between the proxy and the server) modify/drop the TCP option fields?}
+
+\xin{Can we say a bit more about API here? What do the APIs look like? Give an
+example and show how it is encoded in TCP option field.}
+

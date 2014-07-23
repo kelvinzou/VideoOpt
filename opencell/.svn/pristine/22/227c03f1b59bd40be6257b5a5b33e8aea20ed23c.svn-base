@@ -1,0 +1,11 @@
+#! /bin/bash
+svn update
+rm *.aux
+rm *.bbl
+rm *.blg
+rm *.out
+rm *.log
+pdflatex CoNext.tex
+bibtex CoNext.aux
+pdflatex CoNext.tex
+
