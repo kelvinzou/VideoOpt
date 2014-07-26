@@ -1,44 +1,42 @@
 \section{Introduction}
-Video streaming has been the dominant factor in cellular networks, it consists
-up to 40\% of the traffic peak load~\cite{LTENetwork, VideoMeasureatt}. Although
-the video streaming has become one big part of cellular networks, the
-performance for video streaming is not promising. Unique characteristics from
-the cellular networks, such as bandwidth un-predictability over short period of
+Video streaming has been a dominant application traffic in cellular networks, it consists
+up to 40\% of the peak load~\cite{LTENetwork, VideoMeasureatt}. Although
+the video streaming has become one huge part of cellular networks, most video streaming algorithms are designed only for wireline networks~\cite{BBA, QDASH, Festive}. Unique characteristics from the cellular networks, such as bandwidth un-predictability over short period of
 time due to handoff or fading effects, create a challenge for a satisfactory
 video streaming service. 
 
 Most of the current video streaming services are using DASH (\textbf{D}ynamic
-\textbf{A}daptation \textbf{S}treaming over \textbf{H}TTP)\cite{DASH} based
+\textbf{A}daptation \textbf{S}treaming over \textbf{H}TTP)~\cite{DASH} based
 end-to-end approaches. It uses chunk-based downloading and adjusts its video
 streaming bit rate based on the play progress and the monitored bandwidth. The
 application stitches video chunks together to provide a continuous playback.
-However most of the video streaming service are not tailored for cellular networks, and they suffer from a conservative estimation and oscillation\cite{BBA,Festive, QDASH} .The reason for this is the lack of knowledge for the network condition. 
+However most of the video streaming service are not tailored for cellular networks, and they suffer from a conservative bandwidth estimation and video quality oscillation due to a lack of knowledge for the network condition. 
 Some low layer connection information such as signal information is hard to access from application layer without root access.
-Some mechanisms like Sprout\cite{Sprout} have been proposed to estimate link throughput, however it aims to reduce the packet delay while trading off the throughput, and need continuously saturate the link, which can be hardly used in video streaming case where downloading is periodical\cite{OnOff}.   
+End-to-end mechanisms~\cite{Sprout, QDASH, Festive} have been proposed to estimate link throughput, however some aims to reduce the packet delay while trading off the throughput, while others are making conservative and rough estimation. Periodical downloading behavior~\cite{OnOff} makes the bandwidth prediction even harder.
 %For TCP throughput, the application need constantly saturate the link for a better estimation and the estimation takes a long time to converge, which can be hardly used in video streaming case where downloading is periodical\cite{OnOff,Sprout}. 
-\xin{Not sure if this is correct. Can they be collected from end
-hosts? Cite some papers or explain why it's hard}, \kelvin{ how is this sounds like now?}
+%\xin{Not sure if this is correct. Can they be collected from end
+%hosts? Cite some papers or explain why it's hard}, \kelvin{ how does this sound like now?}
 
 On the other hand, a cellular network service provider has much better knowledge of the connection
 conditions for the clients via monitoring, as the last mile has long been identified as the
 bottleneck\cite{LASTMILE}. Cellular ISPs also know the number of
-active users in each cell and the scheduling system, and thus can make more
-precise predictions in terms of available bandwidth. In fact, many key statistics can be easily and some are
+active users in each cell and proportional fair packet scheduling system, and thus can make more
+precise predictions in terms of available bandwidth. In fact, many key statistics like radio information and the base station utilization can be easily and some are
 already being collected within carriers. 
 
-Given cellular carrier's advantages, AVIS\cite{Avis} proposes an in-network video streaming framework where the network makes decision. 
-Nevertheless it also suffers from some constraints. First it
-lacks the application knowledge of play progress and may lead to re-buffering. 
-Second different users may have different subscription
-policies w.r.t. video streaming service and streaming service providers may
-hesitate to share it with ISPs. Users may also have data budget concerns. Last
-but not least, it may require the modification of the cellular scheduling system and that
-may not be practical since most are using pre-installed
+Given cellular carrier's advantages, there are some proposals\cite{Avis} for an in-network video streaming framework where the network controls video streaming algorithm. 
+Nevertheless it also suffers from some limitations. First it
+lacks the application knowledge such as client video buffer occupancy and may lead to re-buffering. 
+Second different users may apply different subscription
+policies w.r.t.video quality (Spotify already has low quality and high quality for free and premium users, video service may apply the same concept) and streaming service providers may
+hesitate to share user information with ISPs. Users may also have data budget concerns. Last
+but not least, in-network approaches may require the modification of packet scheduling system and this
+is hard in practice as most carriers are using pre-installed
 vendor-specific scheduler. 
 
-To address the issue, we propose a novel cellular network design that exposes our in-network information to the video streaming service. By doing so video streaming service can play at higher quality and reduce the amount of chunk prefetching. There are three main contributions in this paper:
+To address the issue, we propose a joint optimization between the cellular network (ISP) and video streaming service (CP): ISP exposes its estimated bandwidth to CP, and CP adjusts its streaming service decision based on the estimated bandwidth. By doing so video streaming service can achieve higher quality and reduce the amount of chunk prefetching, and thus save data budget and power consumption. ISPs also benefit from less bursty traffic and avoid excessive queueing delay from flow pacing. There are three main contributions in this paper:
 \begin{itemize}
-\item Design a scalable architecture to compute KPIs(key performance indicators) and expose them to video streaming providers on the fly.
+\item Design a scalable architecture to compute  and expose them to video streaming providers on the fly.
 \item Conduct a measurement study to show the predictability of user channel quality and cell loads. 
 \item Design an algorithm to show that by using the KPIs we have a significant improvement in video streaming service.
 \end{itemize}

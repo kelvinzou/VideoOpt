@@ -5,7 +5,7 @@ This section starts with the architecture of a scalable prediction system in
 advantages of inline method to expose KPIs in \autoref{subsec:exposingAPI}.
 \subsection{Scalable Prediction System} \label{subsec:prediction_system} We
 propose a two-tiered system to implement an KPI computing system. We have a
-proxy sitting at dataplane; and local and central bandwidth estimator at control
+proxy sitting at data plane; and local and central bandwidth estimator at control
 plane. The local bandwidth estimator communicates with eNodeBs and it takes
 channel quality, number of active users, cell load and users' queue size etc.
 information as inputs and compute the available bandwidth for each user. A local
@@ -29,7 +29,7 @@ information to the proxy.
 
 \subsection{KPI Exposure}\label{subsec:exposingAPI}
 Current cellular networks already deploy proxies in the core network for
-pacing purpose.\cite{UntoldMiddleBoxStory} It splits the TCP connection into two: server$\leftrightarrow
+pacing purpose\cite{UntoldMiddleBoxStory}. It splits the TCP connection into two: server$\leftrightarrow
 $proxy and proxy$\leftrightarrow $client. We can utilize the proxy for KPI
 exposure. \emph{Sending to the server or the client?} We argue that exposing the
 KPIs to the server causes less security concerns and network congestion. It also reduces the traffic in
@@ -46,13 +46,13 @@ video streaming connection and metric exposure connection may be directed to dif
 load balancer. Inline methods both have some disadvantages. 
 If we encode it into TCP option field, any middleboxes on the Internet may modify/drop the option field. 
 The HTTP header may not be accessible since many streaming
-services are using secure encypted HTTP. Modifying HTTP header also requires DPI, which has a higher overhead than changing TCP.
+services are using secure encrypted HTTP. Modifying HTTP header also requires DPI, which has a higher overhead than changing TCP.
 \begin{figure}[t]\label{fig:Datagram}
  \includegraphics[width=\linewidth]{pictures/datagram.pdf}
  \caption{Datagram for exposing KPIs, it can be encoded in either option field or sequence number}
 \end{figure}
 
-One alternative approach is to encode in sequence number, if both content providers and cellular service providers are willing to collaborate. Since sequence number filed has 32 bits, we can reserve 8 bits for KPI exposure. In particular, we can use 7 bits for a floating number and 1 bit for handoff. Seven bits can be divided into integer and fractional parts, 3 bits for integer and 4 bits for fractional, it has a precision of 0.063 Mbps, or 63 Kbps and a maximum value of 8.94 Mbps, which is sufficient for today's video streaming bit rate selection where the range is bewteen 0.2 to 4 Mbps.
+One alternative approach is to encode in sequence number, if both content providers and cellular service providers are willing to collaborate. Since sequence number filed has 32 bits, we can reserve 8 bits for KPI exposure. In particular, we can use 7 bits for a floating number and 1 bit for handoff. Seven bits can be divided into integer and fractional parts, 3 bits for integer and 4 bits for fractional, it has a precision of 0.063 Mbps, or 63 Kbps and a maximum value of 8.94 Mbps, which is sufficient for today's video streaming bit rate selection where the range is between 0.2 to 4 Mbps.
 At the same time it can still support 16 million packets before wrapping around. The bandwidth estimation is close to random so it holds the random feature of initial sequence number.
 
 \xin{Would any middleboxes on the
