@@ -1,38 +1,45 @@
-\begin{table*}[ht]
-\begin{tabular} {|c |c |}
-\hline
-$T$ &the number of time segments\\ \hline
-$M$ &the number of video quality levels (encoding bit rates)\\ \hline
-$R_i$& the rate for the video with $i^{th}$ highest encoding bit rate\\ \hline
-$x_i^t$&indicator of encoding of $R_i$ video play rate at time t, used in offline algorithm \\ \hline
-$E$& utilization of used bandwidth over maximum available bandwidth \\ \hline
-$\phi^t$ &the number of quality jumps between two consecutive chunks at time t\\ \hline
-$C $ &the estimated capacity\\ \hline
-$B $ &the buffer occupancy(seconds of video) \\ \hline
-$z $ &the maximum buffer size (seconds of video) \\ \hline
-$B_{rec} $ &the recommended buffer size (seconds of video) \\ \hline
-\end{tabular}
-\centering
-\caption{Variables for Optimization}
-\end{table*}
 
-\section{Video optimization algorithms}\label{sec:optimization}
-In this section we first define performance metrics in \autoref{subsec:metrics}. We give an offline optimization to define the video quality (efficiency) upper bound where we are aware of the available bandwidth for the whole session in \autoref{subsec:offline}.  Given the exposed APIs, we then design a new video streaming algorithm in section \ref{subsec:online},  to demonstrate the benefits of newly OpenCell.
+\section{Video Streaming optimization}\label{sec:optimization}
+
+
+
+If there is a good prediction about the available bandwidth, how this can be reflected in the improvement of video streaming service is not obvious. In this section we show that the algorithm can use the available bandwidth as a key information and make a smart decision. 
+
+We first define performance metrics for video streaming service in \autoref{subsec:metrics}, the video streaming algorithm takes the metrics into consideration during video quality selection. We define the video quality upper bound given the available bandwidth for the whole session in \autoref{subsec:offline}. We design a new video streaming algorithm in section \ref{subsec:online} to demonstrate the benefits of newly computed information.
 
 
 \subsection{Performance Metrics}\label{subsec:metrics}
-To help us understand what extra benefit we can achieve from new information in the cooperative model, we define \emph{three} metrics for the performance of video streaming given a known network. These metrics have been extensively studies in various approaches and here we use them as a benchmark to test our new model\cite{Qava, Avis,VideoMeasurement, Festive}.
+To help us understand what extra benefit we can achieve from new information, we define \emph{three} performance metrics for video streaming. These metrics have been extensively studies in various video streaming algorithms and we use the metrics in both design and evaluation\cite{Qava, Avis,VideoMeasurement, Festive}.
 
 \begin{enumerate}
 \item\textit{Quality}: as the video download is chunk-based, a video session can consist of chunks with different qualities (bit rates). The video player should download the chunk with the highest possible quality based on available bandwidth at each download point to give user better quality experience. 
 
-\item\textit{Stability}: From viewer's perspective, constant switches between different qualities are distracting and not desirable. To assess the stability of video streaming, we use the concept of fluctuation: it is the the number of jumps difference between two consecutive sessions, \emph{fluctuation cost} at time t: $\phi^t =  \|i*x_i^t - i*x_i^{t-1}\|$.
+\item\textit{Stability}: From viewer's perspective, frequent switches between different qualities are distracting and not desirable. To assess the stability of video streaming, we define\emph{fluctuation cost}: $\phi= \sum\limits_t \mathbf{1}(R^t!=R^{t-1})$ where $\mathbf{1}$ is an indicator function.
 
-\item\textit{Interruption}: Video play should not be halted for fetching video chunks, otherwise user experience will be severely degraded. Video play interruptions affect the user engagement and results in early abandonment of the video play. Video streaming players usually buffer extra chunks to absorb any sudden drop on the link capacity. We use the frequency of interruptions over play time as an indication for interruption; $\beta = \frac{N_{interrupt}}{PlayTime}$.
+\item\textit{Interruption and rebuffering}: Video play should not be halted for rebuffering video chunks, otherwise user experience will be severely degraded. Video play interruptions affect the user engagement and results in early abandonment of the video play. We use the the number of interruptions over the whole play time.
 \end{enumerate}
 
-\subsection{Metrics Upper Bound}\label{subsec:offline}
-Upper bounds for metrics like stability and interruption are straightforward, they should be zero in an intuitive sense. We will formulate a way to find video quality (play efficiency) upper bound, e.g., given the available bandwidth the whole video play session 1 to T, we ask for the optimal video download and play to best utilize the available bandwidth. We prioritize zero-interruption and we ignore the stability factor. 
+\begin{table} [bt]
+\small
+\begin{tabular} {|c |l |}
+\hline
+\textbf{Symbol}&\multicolumn{1}{c|}{\textbf{Meaning} }\\ \hline
+$T$ &the number of time segments\\ \hline
+$M$ &the number of video quality levels (encoding bit rates)\\ \hline
+$R_i$& the rate for the video with $i^{th}$ highest encoding bit rate\\ \hline
+$x_i^t$&indicator of encoding of $R_i$ video play rate at time t\\ \hline
+$E$& utilization of video download over available bandwidth \\ \hline
+$\phi$ &number of switches for a video play\\ \hline
+$C $ &the estimated capacity\\ \hline
+$B $ &the buffer occupancy (seconds of video) \\ \hline
+$z $ &the maximum buffer size (seconds of video) \\ \hline
+$B_{risk} $ &the max buffer size for risky phase (seconds of video) \\ \hline
+\end{tabular}
+\centering
+\caption{Variables for Optimization}
+\end{table}
+\subsection{Video Quality Upper Bound}\label{subsec:offline}
+We will formulate a way to quantify video quality (play efficiency) upper bound, e.g., given the available bandwidth the whole video play session 1 to T, we ask for the optimal video download and play to best utilize the available bandwidth. We prioritize interruption-free and allow prefetching unlimited video chunks. 
 
 To capture zero-interruption, at each time segment the download should always at least be equal to video played (assume at the initial state the client video buffer contains one chunk ahead of playing), i.e., $\sum \limits_{t=1}^\tau R_i * x_i^t\leq\sum\limits_{t=1}^\tau C^t$ for $\forall \tau \in \{1, \dots, T\}$. In terms of measuring the quality (play efficiency) at the end of a video session, the play efficiency equals to the total utilization of the available bandwidth over time period $[1:T]$, we use ratio of the throughput used for video downloading and playing over the available bandwidth: $\bar{E}=(\sum\limits_{t=1}^T D^t)/(\sum\limits_{t=1}^T C^t)$.
 
@@ -45,16 +52,21 @@ To capture zero-interruption, at each time segment the download should always at
 \end{align*}
 \end{subequations}
 
-\subsection{Continuous Online Algorithm} \label{subsec:online}
-\begin{algorithm}[ht]
+\subsection{Video Streaming Algorithm} \label{subsec:online}
+
+In the algorithm, we assume that the available bandwidth forecast for a small time interval is known, in this paper we assume bandwidth estimation for one video chunk. The algorithm is a joint optimization solution based on both the video buffer occupancy and the estimated bandwidth. 
+
+We start our algorithm with a naive solution: pick the maximum available play bit rate based on the known future bandwidth. However we cannot simply use this bit rate: (i) the stability may be heavily impacted due to highly volatile bandwidth values, and (ii) interruptions may occur because a few or even tens of seconds connection loss (zero or near zero bandwidth) is common in a cellular network. To avoid play interruption and rebuffering, we divide the buffer into two phases: risky and safe phase. In risky phase there is a high chance for buffer over-drain, we decide to step down our quality by one, e.g., if the bandwidth is $0.58$Mbps and two consecutive bit rates are $0.56$ and $0.375$, we choose $ 0.375$ as an ideal bit rate for the bandwidth during risky phase, therefore we can fill in the client buffer to safe phase faster. In the safe phase we pick the highest available bit rate which is $0.56$Mbps in the case. We use this computed bit rate as a referred bit rate. Choosing referred bandwidth would give us high play efficiency. 
+
+\begin{algorithm} [t]
 \SetAlgoLined
  \KwData{ $C$: Predicted available bandwidth\newline$\mathbf{B}$: Buffer occupancy vector for t chunks\newline$R_{cur}$: Current video bit rate}
  \KwResult{$Rate$: Rate for next chunk }
 pick MAX($R_{ref}$) where $R_{ref}<C$\;
- \uIf{$B'\leq B_{rec} $}{
+ \uIf{$B'\leq B_{risk} $}{
  pick MAX($R_{ref-1}, R_{min}$)\;
  }
- \uIf{$R_{ref}<R_{cur}$ and $B'<B_{rec}$ }
+ \uIf{$R_{ref}<R_{cur}$ and $B'<B_{risk}$ }
  {
  \For{ $R\in [R_{ref}, R_{cur}]$}
  {
@@ -77,15 +89,13 @@ pick MAX($R_{ref}$) where $R_{ref}<C$\;
 \caption{Rate Selection} \label{cap:algorithm}
 \end{algorithm} 
 
-In the online algorithm, we restrict ourselves to (i) at most prefetch $z$ seconds video chunks, and (ii) only gives available bandwidth forecast for one chunk time interval. Our algorithm is a joint optimization solution based on both the video buffer occupancy and the estimated bandwidth. 
-
-We start our algorithm with a naive solution: pick the maximum available play bit rate based on the known future bandwidth. However we cannot simply use this bit rate: (i) the stability may be heavily impacted due to highly volatile bandwidth values, and (ii) interruptions may occur because a few or even tens of seconds connection loss (zero or near zero bandwidth) is common in a cellular network. To avoid play interruption and rebuffering, we divide the buffer into two phases: risky and safe phase. In risky phase there is a high chance for buffer overdrain, we decide to step down our quality by one, e.g., if the bandwidth is $0.58$Mbps and two consecutive bit rates are $0.56$ and $0.375$, we choose $ 0.375$ as an ideal bit rate for the bandwidth, therefore we can fill in the client buffer to safe phase faster. In the safe phase we pick the highest available bit rate which is $0.56$Mbps in the previous case. We use this computed bit rate as a referred bit rate. Choosing referred bandwidth would give us high play efficiency. 
-
 The algorithm considers the stability in the following manner: it compares the referred play bit rate and current play bit rate, and chooses the referred or current bandwidth or other play bit rates between them based on a certain criteria. It uses delayed updates based on the buffer occupancy status and it echoes similar ideas from BBA and FESTIVE algorithms\cite{BBA, Festive}. 
 
 If $R_{ref} < R_{cur}$, since the current play bit rate is higher, the algorithm may choose current play bit rate at the cost of draining client video buffer. If the buffer size is in safe phase, the algorithm takes the risk and adheres to current play bit rate. If the buffer is in risky phase, it computes the possible buffer drain if choosing the current play bit rate $BLoss =ChunkSize*\frac{R_{cur}-BW}{BW}$, and compare the buffer change in the last $k$ chunks $\Delta B = B_{t} -B_{t-k}$, where $B_{t}$ represents the buffer occupancy at the end of $i^{th}$ chunk download. If the buffer change in the last $k$ chunks is positive and sufficient to compensate the buffer drain for next video chunk, the algorithm chooses the current play bit rate, otherwise it chooses the highest bit rate which can suffice this criterion. This step essentially avoids interruption while ensuring stability.
 
 If $R_{ref} >R_{cur} $, though the referred play bit rate is higher, the high available bandwidth may be for short period of time and the algorithm needs to check buffer gain in the last few chunks against potential buffer loss. In addition to that, if the buffer occupancy is high, the algorithm should be more aggressive and jump up faster and vise versa. To add this factor, we compute potential buffer loss for $k'$ chunks where $k'$ is in linear relation to unfilled buffer $B'=z-B$, $k'=\alpha * B'/ChunkSize$ where $\alpha$ is a tunable knob. We assume a conservative case in the future where the network has enough capacity to stream at current bit rate with no client buffer loss or gain, so potential $BLoss=\alpha * B' *\frac{R-R_{cur}}{R_{cur}} $. If the value is less than buffer gain, we decide to overdrain buffer with the new play bit rate. This step boosts stability.
+
+The online algorithm continuously estimates the bandwidth for the next time segment and selects the bit rate and download unless the client buffer is totally full at size z, as shown in \autoref{cap:algorithm}. 
 
 
 %State-of-the-art video streaming algorithms \cite{BBA, Festive} share great similarities in a few aspects: (i) deferred updates of video bit rate over link condition, (ii) periodic download if video buffer is full. Our design also applies the same concepts.
@@ -99,4 +109,3 @@ If $R_{ref} >R_{cur} $, though the referred play bit rate is higher, the high av
 
 %We use the bit rate= $\argmin{(Score)}$ as the recommended video bit rate. We further delay the video bit rate step up or step down based on $B$ buffer occupancy and $\Delta B$ buffer change from last chunk download via the following mechanism to absorb the high link fluctuation, while $Score$ function absorbs low and median bandwidth fluctuation. We divide the buffer occupancy into two zones: risky $[0,B_{rec}]$ and safe $[B_{rec},z]$. In risky zone, if the client video buffer is depleting, if $\Delta B>0$ we defer the video bit rate stepping down, as it may just be a short period of low throughput. When $B$ is in safe zone we take more risk and step down if $\Delta B < -\frac{B_{rec}}{2}$ which means if the buffer is depleting substantially and a preemptive action is needed before stepping into risk zone. Stepping up is allowed since in risky phase the bandwidth is already a discounted bandwidth, and in safe phase we have sufficient buffer. 
   
-The online algorithm continuously estimates the bandwidth for the next time segment and selects the bit rate, as shown in \autoref{cap:algorithm}. 

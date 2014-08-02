@@ -36,18 +36,16 @@ One unique characteristic for cellular network is the high mobility and this cau
 
 \emph{RSRQ:} Reference Signal Received Quality, is the key metric for the LTE wireless channel. RSRQ senses the load from other users in the same cell and the neighboring cells, and is indexed in 0-34 integer numbers; a higher number indicates a better link quality. RSRQ values can be mapped to certain encoding rate.
 
-We predict the future RSRQ using time series analysis, in particular we use ARIMA (Auto-Regressive Integrated Moving Average) model: the algorithm fits the best ARIMA with historical data, and it uses a sliding window as the training dataset. We set window size to 15. (We tried longer window but see no significant improvement over accuracy.) 
+We predict the future RSRQ using time series analysis, in particular we use ARIMA (Auto-Regressive Integrated Moving Average) model to predict the next second: the algorithm fits the best ARIMA with historical data, and it uses a sliding window as the training dataset. We set window size to 15s. (We tried longer window but see no significant improvement over accuracy.) 
 
-Through replaying 113 sample traces where the UEs are active for more than 100 seconds, we found that MAPE$<0.18$ for all the users, and the mean value is $0.064$. CFE values varies more across users with a maximum CFE=34.6, this is about three times of a unit value. In other words, for a 100 seconds prediction, prediction result may be 97\% accurate over long term. 
+Through replaying 113 sample traces where the UEs are active for more than 100 seconds, we found that MAPE$<0.18$ for all the users, and the mean value is $0.064$. CFE values varies more across users with a maximum CFE=34.6, this is about three times of a unit value. In other words, for a 100 seconds prediction, prediction result may be 97\% accurate over long term and 82\% accurate on average for each prediction. 
 
 The above results tell us that a simple prediction model such as ARIMA can offer a fairly accurate prediction. 
 
 \subsection{Cell Load}\label{subsec:NUser}
 We measured the number of active users in each cell from the same trace as mentioned above. The trace is collected from UE's RSRQ reports to eNodeBs. We assume a user is active in a certain second if the user reports RSRQ in a one-second interval. 
 
-We apply ARIMA model, and find in most cases random model fits the distribution the best. Different cells have different load, and the prediction works better in a heavily loaded cell. Since the inverse value of the active user number has strong correlation with available bandwidth for each user, we take the inverse value to compute MAPE and CFE. For heavily loaded cell ($>30$ UEs) we have MAPE$<0.1$ and CFE$<2$, medium loaded cell (5-30 UEs) MAPE$<0.5$ and CFE$<10$. This tells us we can achieve 90\% accuracy over long term. 
-
-
+We apply ARIMA model, and find in most cases a random-walk model fits in the best. Different cells have different load, and the prediction works better in a heavily loaded cell. Since the inverse value of the active user number has a strong correlation with available bandwidth for each user, we take the inverse value to compute MAPE. For heavily loaded cell ($>30$ UEs) we have MAPE$<0.1$, and medium loaded cell (5-30 UEs) MAPE$<0.3$. This tells us we can achieve 70\% accuracy for each prediction on average for a medium to heavily loaded cell. For a lightly loaded cell, the prediction is not very satisfying, with MAPE$>1$. This is because the prediction value are affected to a greater extent by the small true value. However for a lightly loaded cell each user usually has higher available bandwidth, and thus has less need for extra information such as bandwidth informing.  
 
 \begin{comment}
 
