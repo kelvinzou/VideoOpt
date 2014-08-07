@@ -1,0 +1,148 @@
+\section{Introduction}
+Video streaming has been a dominant application traffic in cellular networks, it consists
+up to 40\% of the peak load~\cite{LTENetwork, VideoMeasureatt}. Although
+the video streaming has become one huge part of cellular networks, most video streaming algorithms are designed only for wireline networks~\cite{BBA, QDASH, Festive}. Unique characteristics from the cellular networks, such as bandwidth un-predictability over short period of
+time due to handoff or fading effects, create a challenge for a satisfactory
+video streaming service. 
+
+Most of the current video streaming services are using DASH (\textbf{D}ynamic
+\textbf{A}daptation \textbf{S}treaming over \textbf{H}TTP)~\cite{DASH} based
+end-to-end approaches. It uses chunk-based downloading and adjusts its video
+streaming bit rate based on the play progress and the monitored bandwidth. The
+application stitches video chunks together to provide a continuous playback.
+However most of the video streaming service are not tailored for cellular networks, and they suffer from a conservative bandwidth estimation and video quality oscillation due to a lack of knowledge for the network condition. 
+Some low layer connection information such as signal information is hard to access from application layer without root access.
+End-to-end mechanisms~\cite{Sprout, QDASH, Festive} have been proposed to estimate link throughput, however some aims to reduce the packet delay while trading off the throughput, while others are making conservative and rough estimation. Periodical downloading behavior~\cite{OnOff} makes the bandwidth prediction even harder.
+%For TCP throughput, the application need constantly saturate the link for a better estimation and the estimation takes a long time to converge, which can be hardly used in video streaming case where downloading is periodical\cite{OnOff,Sprout}. 
+%\xin{Not sure if this is correct. Can they be collected from end
+%hosts? Cite some papers or explain why it's hard}, \kelvin{ how does this sound like now?}
+
+On the other hand, a cellular network service provider has much better knowledge of the connection
+conditions for the clients via monitoring, as the last mile has long been identified as the
+bottleneck\cite{LASTMILE}. Cellular ISPs also know the number of
+active users in each cell and proportional fair packet scheduling system, and thus can make more
+precise predictions in terms of available bandwidth. In fact, many key statistics like radio information and the base station utilization can be easily and some are
+already being collected within carriers. 
+
+Given cellular carrier's advantages, there are some proposals\cite{Avis} for an in-network video streaming framework where the network controls video streaming algorithm. 
+Nevertheless it also suffers from some limitations. First it
+lacks the application knowledge such as client video buffer occupancy and may lead to re-buffering. 
+Second different users may apply different subscription
+policies w.r.t.video quality (Spotify already has low quality and high quality for free and premium users, video service may apply the same concept) and streaming service providers may
+hesitate to share user information with ISPs. Users may also have data budget concerns. Last
+but not least, in-network approaches may require the modification of packet scheduling system and this
+is hard in practice as most carriers are using pre-installed
+vendor-specific scheduler. 
+
+To address the issue, we propose a joint optimization between the cellular network (ISP) and video streaming service (CP): ISP exposes its estimated bandwidth to CP, and CP adjusts its streaming service decision based on the estimated bandwidth. By doing so video streaming service can achieve higher quality and reduce the amount of chunk prefetching, and thus save data budget and power consumption. ISPs also benefit from less bursty traffic and avoid excessive queueing delay from flow pacing. There are three main contributions in this paper:
+\begin{itemize}
+\item Design a scalable architecture to compute  and expose them to video streaming providers on the fly.
+\item Conduct a measurement study to show the predictability of user channel quality and cell loads. 
+\item Design an algorithm to show that by using the KPIs we have a significant improvement in video streaming service.
+\end{itemize}
+
+This paper introduces a scalable architecture to compute the bandwidth and expose the KPIs to the service provider in \autoref{sec:Architecture} and then we conduct a preliminary measurement study of predictability of available bandwidth in \autoref{sec:prediction}. We propose our new optimization algorithm in \autoref{sec:optimization} and show our results in \autoref{sec:evaluation}. This paper concludes in \autoref{sec:conclusion}. 
+
+
+=============== [rjana,gvijay] 
+
+Increasing number of users are watching videos on their cellular
+devices. Recent studies~\cite{cisco-vni} show that mobile video
+accounts more than 50\% of the cellular traffic today and is expected
+to grow fourteen fold by 2018. This growing popularity of video over
+cellular networks has resulted in significant attention by cellular
+operators, content providers and the research community. 
+
+Cellular operators, for example, are making huge investments to
+provide better coverage and capacity in order to keep up with this
+escalating demand. They are deploying the latest cellular technology
+features at a rapid rate. Content providers are adopting
+state-of-the-art delivery mechanisms a like Dynamic Adaptation
+Streaming over HTTP (DASH)~\cite{DASH} and HTTP Live Streaming
+(HLS)~\cite{HLS}. In these approaches, each video is segmented into chunks
+(typically a few seconds) with each chunk encoded into multiple
+quality levels (i.e., bitrate). The video client downloads one chunk
+at a time, determining the quality of each chunk based on a number of
+different considerations. Typical approaches~\cite{HLS,Festive,BBA}
+try to determine the appropriate bitrate by optimizing for metrics
+like the average video quality, number of interruptions, or the
+stability of video quality. The decisions are usually based
+on the duration of video buffered and an estimate of available network
+bandwidth. 
+
+These novel delivery mechanisms and expensive network investments,
+however, have not translated to a high quality of experience for end
+users. A recent study~\cite{opera-stall} shows that between 40\% and
+73\% of all videos played on mobile networks experience stalls. For
+every 60 seconds of video, users on 3G experienced an average of 47
+seconds of stall, while those on LTE experienced 15 seconds
+stall~\cite{citrix-stall}. Worse yet, the fraction of videos stalled
+increased with video quality with 10.5\% of 240p videos stalling while
+45.7\% of 720p videos experienced a stall. This implies that viewers
+primarily get a low quality video with a lot of interruptions
+resulting a low quality of experience with mobile vidoes.
+
+We believe that one of the main reasons for the low quality of
+experience is the mis-match between information used by video
+adaptation process and available network bandwidth. The adaptation
+process on a video client uses historical throughput to estimate its
+current bandwidth. It then decides the quality of the next chunk based
+on this estimate. On cellular networks, however, this estimate could
+be widely off. There are many factors, including the user's signal
+strength, number of users in the cell, the congestion in the cell, and
+user mobility that can determine a user's bandwidth. As a result, a
+user's bandwidth can vary widely even over short periods of time,
+rendering any historical estimates inaccurate.
+
+\textbf{VG: TODO FROM THIS POINT ON}
+To this end, we propose opening up
+the cellular network (OpenCell) to provide valuable hints (by means of
+an API) to the player or the content server so that it is able to
+provide the best quality encoding. OpenCell keeps account of all flows
+on a per base station (e.g. LTE eNB) basis and tracks the measurement
+reports received from the end user. The measurement reports provide
+valuable indicators of the end users' signal strength (RSRP) and
+wireless channel quality (CQI, RSRQ etc). This allows OpenCell to {\em
+  predict} every user's channel quality for a future time period
+(typically the next segment to be downloaded). An empirical
+(data-driven) model is updated that maps channel quality to achievable
+throughput. By making this prediction with a certain amount of
+confidence, OpenCell is able to advise the player or the content
+server which video quality to download next.
+
+Why: The service provider has a global view of all traffic that are
+flowing through the cellular network. In particular, having visibility
+of all competing flows inside a base station allows the service
+provider to allocate resources fairly and efficiently. The scheduler
+that operates inside an eNB looks at the instantaneous measurement
+reports and computes a metric to rank the user. Resources are then
+proportionally allocated according to this rank. By predicting the
+user's future throughput, OpenCell can decide on how to treat the
+different flows (e.g. prioritize video and VOIP flows vs email and web
+traffic). The operator also has visibility of the middle boxes (video
+proxies) that exist between the content provider and the user. Video
+flows are typically routed through these middle boxes to enforce
+various policies (e.g. traffic shaping, admission control, etc.).
+
+How: To understand the improvement obtained by using OpenCell, we
+initially use an oracle in an off-line mode to provide predicted
+throughputs. This allows us to quantify an upper bound the video QoE
+metrics. Next, we design a video algorithm that performs better than
+any of the state-of-the-art algorithms (e.g. FESTIVE, BBA,
+etc.). Finally, we propose various mechanisms to realize OpenCell. We
+leverage standard HTTP protocol headers to notify the player or the
+content server on future segments to download (TCP headers can also be
+used but we choose to implement using HTTP since it is more
+accessible??). A proxy within the service provider's network can be
+dedicated to collect all the relevant network level information and
+perform the throughput prediction. Further shaping of traffic can also
+be considered to prioritize concurrent flows inside an eNB.
+
+Our contributions are
+\begin{itemize}
+\item Conduct a measurement study to show the predictability of users' channel quality and throughputs. 
+\item Design an online buffer and channel-aware video algorithm to quantify the improvement in video QoE compared to state of the art.
+\item Design a scalable solution and mechanisms to compute and publish relevant hints to the end user.
+\end{itemize}   
+
+This paper is structured as follows. Section 1 ....

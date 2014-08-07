@@ -1,20 +1,30 @@
 \section{Measurement study}\label{sec:prediction}
-In this section we conduct an extensive measurement study to show the predictability of a few key metrics that affects the available throughput. 
+In this section we conduct an extensive measurement study using network traces from a large cellular service provider to show the predictability of a few key performance metrics that affects available throughput. The traces are collected for 5 minutes in June 2014 from several locations in the United States. The data covers more than half million users distributed over 2000 eNodeBs. The following KPIs were monitored
+\begin{table}[htbf]
+\centering
+\begin{tabular}{l|c|c|}
+Metric & Description & Resolution \\ \hline
+CQI & Channel Quality Indicator & 1 sec \\
+RSRQ & Pilot Signal quality & 1sec \\
+RRC & Radio resource connections & 1 min \\
+HO & Hand over & 1 min \\
+Tput & Throughput & ? \\ \hline
+\end{tabular}
+\caption{Key Performance Indicators in LTE network}
+\end{table}
 
-Proportional fair schedulers have been widely deployed in 3G and 4G networks to achieve high spectrum efficiency. It takes the channel conditions and the number of active users as inputs and schedules packets accordingly. In this section, we study how accurate prediction can give us for the two key inputs-channel condition and the number of active users. The information can be mapped to an available throughput, however we have not fully explored the underline relation between them. This approach is different from end-to-end monitoring approaches as it does not require constantly saturating the link to get the maximum bandwidth. 
 
-The traces are collected for 5 minutes in Jun 2014 over several geolocations in the United States from one major 4G network carrier, it covers more than half million users and over 2000 eNodeBs. The traces have been anonymized before handing to us for privacy reasons. 
+%Proportional fair schedulers have been widely deployed in 3G and 4G networks to achieve high spectrum efficiency. It takes the channel conditions and the number of active users as inputs and schedules packets accordingly. In this section, we study how accurate prediction can give us for the two key inputs-channel condition and the number of active users. The information can be mapped to an available throughput, however we have not fully explored the underline relation between them. This approach is different from end-to-end monitoring approaches as it does not require constantly saturating the link to get the maximum bandwidth. 
+
 
 \begin{comment}
 \subsection{Proportional Fair Scheduler}\label{subsec:ltenet}
 3G ad 4G networks are using Orthogonal Frequency-Division Multiuser Access(OFDMA) scheme to achieve high spectrum efficiency. To achieve multiuser diversity, NodeBs and eNodeBs are running variations of proportional fair scheduling system. A basic \textit{proportional fair scheduler} works as the following: eNodeBs obtain the feedback from each user about their instantaneous channel quality conditions (CQ) in terms of encoding rate per resource block, and take the ratio between it and historical mean of CQ and pick the user with the maximum ratio. In a static model over a long term, each user will get 1/N share of resource blocks if N is the static number of users in the cell, a dynamic model also has a similar result\cite{PFINFOCOM}. The maximum bandwidth for each user in a cell is a function of: $T$-number of resource blocks in the cell, $N$-number of users in the cell, and $\mathbf{CQ}$-channel quality vector for all users; so maximum bandwidth vector for all users $\mathbf{BW} = f(T, N, \mathbf{CQ})$. We do not directly address $f(T, N, \mathbf{CQ})$ function in this paper as it is a vendor-specific PF-based scheduler. In the rest of the paper we assume a simple PF scheduler model, that is $\mathbf{BW} = f(T, N, \mathbf{CQ})=\frac{T}{N}*\mathbf{CQ}$. Among the three variables, $T$ is predetermined by the hardware, $N$ and $\mathbf{CQ}$ are the two factors we need to predict. 
 \end{comment}
 
-%\subsection{Bandwidth Estimation} \label{subsec:Prediction}
-
 
 \subsection{Predictability}
-There are many different metrics to compute the accuracy of a prediction, such as Mean Absolute Percentage Error (MAPE), Mean Square Percentage Error (MSE). In this paper we use MAPE since it can give us a good hint about how much off the prediction is from the true value for each step. In addition, we have the analysis of Cumulative Forecast Error (CFE), as it indicates how biased the prediction is over a long term. 
+We look at representative metrics and perform prediction over different lookahead horizons. The prediction accuracy is determined using standard statistical tools such as Mean Absolute Percentage Error (MAPE), Mean Square Percentage Error (MSPE). We also use the Cumulative Forecast Error (CFE), to indicate how the prediction deviates over a long duration. 
 
 \begin{figure}[t]
 
@@ -28,13 +38,13 @@ There are many different metrics to compute the accuracy of a prediction, such a
  \includegraphics[width=\linewidth]{pictures/UE.png}
 \end{minipage}
 
-\caption{prediction for channel quality and active UE} \label{fig:prediction}
+\caption{Predicting channel quality and active number of users} \label{fig:prediction}
 \end{figure}
 
 \subsection{Channel Quality}\label{subsec:CQ}
-One unique characteristic for cellular network is the high mobility and this causes the link quality to fluctuate to a certain extent.
+One unique characteristic for cellular network is the high mobility and this causes the link quality to fluctuate. Channel Quality Index is reported by the UE to inform the eNB about its signal quality~\cite{cqi}.  CQI ranges from 1 through 15. 
 
-\emph{RSRQ:} Reference Signal Received Quality, is the key metric for the LTE wireless channel. RSRQ senses the load from other users in the same cell and the neighboring cells, and is indexed in 0-34 integer numbers; a higher number indicates a better link quality. RSRQ values can be mapped to certain encoding rate.
+\emph{RSRQ:} Reference Signal Received Quality, is a key metric for the LTE wireless channel. RSRQ senses the load from other users in the same cell and the neighboring cells, and is indexed in 0-34 integer numbers; a higher number indicates a better link quality. RSRQ values can be mapped to certain encoding rate.
 
 We predict the future RSRQ using time series analysis, in particular we use ARIMA (Auto-Regressive Integrated Moving Average) model to predict the next second: the algorithm fits the best ARIMA with historical data, and it uses a sliding window as the training dataset. We set window size to 15s. (We tried longer window but see no significant improvement over accuracy.) 
 
@@ -45,7 +55,7 @@ The above results tell us that a simple prediction model such as ARIMA can offer
 \subsection{Cell Load}\label{subsec:NUser}
 We measured the number of active users in each cell from the same trace as mentioned above. The trace is collected from UE's RSRQ reports to eNodeBs. We assume a user is active in a certain second if the user reports RSRQ in a one-second interval. 
 
-We apply ARIMA model, and find in most cases a random-walk model fits in the best. Different cells have different load, and the prediction works better in a heavily loaded cell. Since the inverse value of the active user number has a strong correlation with available bandwidth for each user, we take the inverse value to compute MAPE. For heavily loaded cell ($>30$ UEs) we have MAPE$<0.1$, and medium loaded cell (5-30 UEs) MAPE$<0.3$. This tells us we can achieve 70\% accuracy for each prediction on average for a medium to heavily loaded cell. For a lightly loaded cell, the prediction is not very satisfying, with MAPE$>1$. This is because the prediction value are affected to a greater extent by the small true value. However for a lightly loaded cell each user usually has higher available bandwidth, and thus has less need for extra information such as bandwidth informing.  
+We apply ARIMA model, and find in most cases a random-walk model fits in the best. Different cells have different load, and the prediction works better in a heavily loaded cell. Since the inverse value of the active user number has a strong correlation with available bandwidth for each user, we take the inverse value to compute MAPE. For heavily loaded cell ($>30$ UEs) we have MAPE$<0.1$, and medium loaded cell (5-30 UEs) MAPE$<0.3$. This tells us we can achieve 70\% accuracy for each prediction on average for a medium to heavily loaded cell. For a lightly loaded cell, the prediction is not very satisfying, with MAPE$>1$. This is because the prediction value are affected to a greater extent by the small true value. However for a lightly loaded cell each user usually has higher available bandwidth, and thus has less need for extra information such as the available bandwidth.  
 
 \begin{comment}
 

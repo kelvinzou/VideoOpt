@@ -61,3 +61,26 @@ Internet (between the proxy and the server) modify/drop the TCP option fields?}
 \xin{Can we say a bit more about API here? What do the APIs look like? Give an
 example and show how it is encoded in TCP option field.}
 
+<emir>
+
+In this section, we briefly describe the proposed architecture for realizing OpenCell concept. While alternative architectures are certainly possible, we aim for easy integration with the client-driven adaptation process in the state-of-the-art DASH systems. Hence, the exposed information or network state (e.g. predicted throughput) is made available to the client (video app), which can use it as a part of its adaptation logic, and/or share with the content server if desired.
+
+The process of generating and exposing the information starts at the base station (eNodeB), where cell load, signal statistics and user throughput are collected. Based on collected data, predicted throughput is generated for all users and reported to the OpenCell server once per reporting interval. OpenCell server stores this information, which can be queried by user clients. Clients are typically HTTP-based and OpenCell server can use a simple HTTP-based API. Depending on requirements, clients can query the network state for the current or even past reporting periods. 
+
+OpenCell servers can further process information received by base stations, e.g. to produce aggregated or long-term predictions. If base stations report every 500 ms, OpenCell servers may construct a prediction for 2, 5, or any number of seconds. This may depend on frequency the clients may query the OpenCell servers. 
+
+In an application- or service-specific scenario, only certain apps or services are allowed to query OpenCell servers, enforcement of which is out of scope of this paper. However, it is possible to envision that all mobile clients could potentially have access. In a client-oriented architecture like ours, OpenCell servers are located inside the cellular core network and queried by video apps via HTTP. The prediction delivered by the OpenCell server will be valid for the next several seconds, typically on the order of video chunk duration. Each response may include information on how often clients may issue queries and for how long the returned prediction is valid.
+
+We estimate that the proposed architecture can scale up to the requirements of today's video streaming services. 
+(Add actual numbers)
+
+
+
+
+
+
+
+
+
+
+
