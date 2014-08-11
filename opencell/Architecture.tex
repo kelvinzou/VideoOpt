@@ -61,19 +61,21 @@ Internet (between the proxy and the server) modify/drop the TCP option fields?}
 \xin{Can we say a bit more about API here? What do the APIs look like? Give an
 example and show how it is encoded in TCP option field.}
 
-<emir>
+(emir)
 
 In this section, we briefly describe the proposed architecture for realizing OpenCell concept. While alternative architectures are certainly possible, we aim for easy integration with the client-driven adaptation process in the state-of-the-art DASH systems. Hence, the exposed information or network state (e.g. predicted throughput) is made available to the client (video app), which can use it as a part of its adaptation logic, and/or share with the content server if desired.
 
 The process of generating and exposing the information starts at the base station (eNodeB), where cell load, signal statistics and user throughput are collected. Based on collected data, predicted throughput is generated for all users and reported to the OpenCell server once per reporting interval. OpenCell server stores this information, which can be queried by user clients. Clients are typically HTTP-based and OpenCell server can use a simple HTTP-based API. Depending on requirements, clients can query the network state for the current or even past reporting periods. 
 
-OpenCell servers can further process information received by base stations, e.g. to produce aggregated or long-term predictions. If base stations report every 500 ms, OpenCell servers may construct a prediction for 2, 5, or any number of seconds. This may depend on frequency the clients may query the OpenCell servers. 
+OpenCell servers can further process information received by base stations, e.g. to produce aggregated or long-term predictions. If base stations report every 500 ms, OpenCell servers may construct a prediction for 2, 5, or any number of seconds. This may depend on frequency the clients may query the OpenCell servers. In addition, OpenCell server can obtain current and impending handoff information from the network and further adjust the predictions.
 
 In an application- or service-specific scenario, only certain apps or services are allowed to query OpenCell servers, enforcement of which is out of scope of this paper. However, it is possible to envision that all mobile clients could potentially have access. In a client-oriented architecture like ours, OpenCell servers are located inside the cellular core network and queried by video apps via HTTP. The prediction delivered by the OpenCell server will be valid for the next several seconds, typically on the order of video chunk duration. Each response may include information on how often clients may issue queries and for how long the returned prediction is valid.
 
-We estimate that the proposed architecture can scale up to the requirements of today's video streaming services. 
-(Add actual numbers)
+An alternative way of exposing network state is via protocol headers, e.g HTTP or TCP headers. Using HTTP is preferable, in which case OpenCell server is colocated or collaborating with the existing web proxy. Exposed information is simply added as a new HTTP header to the existing video chunk request or a response. Video apps may even issue a "dummy" request immediately prior to the actual chunk request, to obtain most up-to-date network state information.
 
+In addition to exposing information, OpenCell server and/or a web proxy may perform a traffic shaper role. For example, based on the predicted throughput, a proxy may shape the traffic to enforce the prediction and thereby indirectly assist the video app in adapting to network conditions. 
+
+We estimate that the proposed architecture can scale up to the requirements of today's video streaming services. The network data aggregation at the OpenCell server requires at least the user device ID and the locally predicted information, such as signal strength, cell load and the predicted throughput for example. Four bytes can be used to easily encode at least 4 pieces of information, and another 4 bytes to identify the user device via its tunnel endpoint, making 8 bytes an estimated payload requirement. We estimate up to 1,000 devices per base station, which reports every 500 ms, yiedling 16,080 B/s, including 80 bytes of UDP and tunnel headers. Even 100,000 base stations in the network would produce only 12 Gb/s of traffic. The number of data centers serving a network of this size would be on the order of tens, reducing the maximum load to under 1 Gb/s per center. Optimizations of device ID and network information size would reduce this requirement significantly.
 
 
 

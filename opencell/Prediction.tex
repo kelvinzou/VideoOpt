@@ -1,5 +1,10 @@
 \section{Measurement study}\label{sec:prediction}
-In this section we conduct an extensive measurement study using network traces from a large cellular service provider to show the predictability of a few key performance metrics that affects available throughput. The traces are collected for 5 minutes in June 2014 from several locations in the United States. The data covers more than half million users distributed over 2000 eNodeBs. The following KPIs were monitored
+In this section we conduct an extensive measurement study using network traces
+from a large cellular service provider to show the predictability of a few key
+performance metrics that affects available throughput. The traces are collected
+for 5 minutes in June 2014 from several locations in the United States. The data
+covers more than half million users distributed over 2000 eNodeBs. The
+following KPIs were monitored\xin{broken sentence. what are the KPIs?}
 \begin{table}[htbf]
 \centering
 \begin{tabular}{|l|c|c|}
@@ -25,7 +30,20 @@ Tput & Throughput & ? \\ \hline
 
 
 \subsection{Predictability}
-We look at representative metrics and perform prediction over different lookahead horizons. The prediction accuracy is determined using standard statistical tools such as Mean Absolute Percentage Error (MAPE), Mean Square Percentage Error (MSPE). We also use the Cumulative Forecast Error (CFE), to indicate how the prediction deviates over a long duration. 
+We look at representative metrics and perform prediction over different
+lookahead horizons. The prediction accuracy is determined using standard
+statistical tools such as Mean Absolute Percentage Error (MAPE), Mean Square
+Percentage Error (MSPE). We also use the Cumulative Forecast Error (CFE), to
+indicate how the prediction deviates over a long duration. \xin{(1) why not
+mention ARIMA here? (2) I don't see where MSPE is used in 2.2 and 2.3. (3) CFE
+is only used in 2.2, but not 2.3. Why?} 
+\kelvin{I will add CFE, it is hard to put in number there since CFE changes a lot for different loaded cells. CFE looks pretty ugly actually}
+
+\xin{Algorithms in later sections use bandwidth rather than RSRQ or cell load.
+There seems a lack of connections with this section.  Readers may ask why not
+measure and predict bandwidth in the section. Do we have results on
+bandwidth? If not, can we mention how we can use RSRQ and cell load to
+estimate/calculate bandwidth?}
 
 \begin{figure}[t]
 
@@ -56,7 +74,7 @@ By replaying 113 sample traces where all UEs are active for more than 100 second
 We also measured the number of active users in each cell from the same trace as mentioned above. The trace is collected from UE's RSRQ reports to eNodeBs. We assume a user is active in a certain second if the user reports RSRQ in a one-second interval. 
 
 We apply ARIMA model, and find in most cases a random-walk model [xx] fits in the best. Different cells have different load, and the prediction works better in a heavily loaded cell. 
-In a proportional fair scheduler, over the long term the bandwidth each user receives is proportional to the inverse value of the number of users, so we take the inverse value to compute MAPE. For heavily loaded cells ($>30$ UEs) we have MAPE$<0.1$, and medium loaded cell (5-30 UEs) MAPE$<0.3$. This tells us we can achieve 70\% accuracy for each prediction on average for a medium to heavily loaded cell. For a lightly loaded cell, the prediction is not very satisfying, with MAPE$>1$. This is because the prediction value is affected to a greater extent by the small true value. However for a lightly loaded cell each user usually has higher available bandwidth, and thus has less need for extra information such as the available bandwidth.  
+In a proportional fair scheduler, over the long term the bandwidth each user receives is proportional to the inverse value of the number of users, so we take the inverse value to compute MAPE. For heavily loaded cells ($>30$ UEs) we have MAPE$<0.1$, and medium loaded cell (5-30 UEs) MAPE$<0.3$. This tells us we can achieve 70\% accuracy for each prediction on average for a medium to heavily loaded cell. For a lightly loaded cell, the prediction is not very satisfying, with MAPE$>1$. CFE values varies a lot depending on the cell load, it is about 5 times of an average unit value for heavily loaded cell, 25 times for a medium loaded cell and can go up to 70 times for a lightly loaded cell. This is because the prediction value is affected to a greater extent by the small true value. However for a lightly loaded cell each user usually has higher available bandwidth, and thus has less need for extra information such as the available bandwidth.  
 
 
 

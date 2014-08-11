@@ -13,20 +13,27 @@ We start by defining performance metrics for video streaming service in
 \autoref{subsec:metrics}. The goal of the video rate selection is to 
 optimize these metrics.
 % takes the metrics into consideration during video quality selection. 
-In \autoref{subsec:offline}, we design an offline algorithm, OPT, that
+In \autoref{subsec:offline}, we design an offline algorithm, OPT \xin{full
+name?}, that
 takes, as input, available bandwidth during the entire session and
-selects video quality for each chunk duration. For a certain video play bit rate, we assume the encoding rate is
-constant.
+selects video quality for each chunk duration. We assume constant bit
+rate encoding, meaning that all chunks for a given video rate have the
+same size.
+% For a certain video play bit rate, we assume the encoding rate is constant.
 
   
 The performance of this algorithm forms an upper bound on possible
 gains from knowledge of future bandwidth.
 In \autoref{subsec:online}, we present our final algorithm that, for
-each chunk, selects a video rate  based on prediction of 
-available bandwidth in the \emph{near} future. This algorithm uses the predicted bandwidth 
-for the next video chunk interval to compute a reference play bit rate, and uses this referred bandwidth, 
-play history and buffer occupancy to make a final decision. 
-
+each chunk, first selects a reference video rate  based on prediction of 
+available bandwidth in the \emph{near} future. 
+Then we further refine this rate selection based on buffer occupancy
+(current value as well as change in last few chunks).
+%
+%This algorithm uses the predicted bandwidth 
+%for the next video chunk interval to compute a reference play bit
+%rate, and uses this referred bandwidth,  
+%play history and buffer occupancy to make a final decision. 
 \rks{It is not very clear if we are (a) designing a video rate
   selection algorithm that is simply better than BBA, FESTIVE,
   etc. while using the similar information as those guys,
@@ -58,12 +65,17 @@ streaming
   rates). The video player should download the chunk with the highest
   possible quality based on available bandwidth at each download point
   to give user better quality experience. We define quality as the
-  ratio of 'total size of downloaded and played video' and 'sum of bandwidth.'
+  ratio of 'total size of played video' and 'sum of bandwidth.'
+\xin{Maybe use formula? It looks a bit awkward now.}
 
 \item\textit{Stability}: From viewer's perspective, frequent rate
   switches are distracting and undesirable. Our goal is to minimize 
   % To assess the stability of video streaming, we  define
-  \emph{instability}, defined as the number of rate switches between consecutive chunks, $\phi= \sum\limits_t
+  \emph{instability}, defined as the number of rate switches, 
+% between consecutive chunks (\rks{rate switch, by defn, is between
+% consecutive chunks, right?} so I commented it out but I don't feel
+% strongly about it so you are welcome to put it back.
+$\phi= \sum\limits_t
   \mathbf{1}(R^t!=R^{t-1})$, where $\mathbf{1}$ is an indicator
   function. 
   
@@ -89,7 +101,7 @@ $x_i^t$& binary variable indicating whether $R_i$ is the video \\
 $E$& utilization of video download over available bandwidth \\ \hline
 $\phi$ &number of video rate switches \\ \hline
 % for a video play
-$C $ & estimated bandwidth for the next chunk\\ \hline
+$C $ & predicted bandwidth for the next chunk\\ \hline
 $B $ & buffer occupancy (seconds of video) \\ \hline
 $z $ &maximum buffer size (seconds of video) \\ \hline
 $B_{risk} $ & threshold for buffer occupancy. Below this threshold is\\
@@ -102,12 +114,19 @@ $B_{risk} $ & threshold for buffer occupancy. Below this threshold is\\
 \subsection{Video Quality Upper Bound}\label{subsec:offline}
 
 
-Given the available bandwidth for the entire video play
+Given the available bandwidth for the \emph{entire} video play
 session, we want to know the optimal video rates for each chunk. This
 is an idealization of our real problem, where we only know (with high
 confidence) available bandwidth for a few chunks.
 We formulate a Mixed Integer Linear Program (MILP) with the goal of
-maximizing quality without causing any interruptions. We only focus on quality here and ignore stability. 
+maximizing quality without causing any interruptions. To keep this
+presentation simple, we only focus on quality here and ignore stability. 
+\rks{A possible criticism we may face is that, based on MILP, we may
+  claim that there is room for say 30\% improvement but reader may
+  counter that if we also cared for stability, the gap may only be 
+  10\%. Can we somehow say that ignoring stability does not change the
+  results very much? May not be needed for workshop paper but for the
+  longer paper.}
 
 % quantify video quality (play efficiency)
 % upper bound, e.g., 
@@ -130,19 +149,24 @@ should not exceed the sum of capacities until that video chunk.
 % ), i.e.,
 
 
-The download at time $t$ is given by 
-$Download = \sum \limits_{i=1}^M R_i *  x_i^t$. 
+%The download rate at chunk $t$ is given by the rate selected at that chunk. 
+Because for any $t$, exactly one $x_i^t$ is one, the download
+rate at chunk $t$ is given by 
+$Download(t) = \sum \limits_{i=1}^M R_i *  x_i^t$. 
 The zero-interruptions constraint is 
-$\sum \limits_{t=1}^\tau  (\sum \limits_{i=1}^M R_i *  x_i^t) \leq\sum\limits_{t=1}^\tau C^t$
+%$\sum \limits_{t=1}^\tau  (\sum \limits_{i=1}^M R_i *  x_i^t)
+%\leq\sum\limits_{t=1}^\tau C^t$
+$\sum \limits_{t=1}^\tau  Download(t) \leq\sum\limits_{t=1}^\tau C^t$
 for $\forall \tau \in \{1, \dots, T\}$.
-As stated earlier, 
-quality (play efficiency) 
+As stated earlier, quality (play efficiency) 
 %at the end of a video session, the play efficiency 
 is the overall utilization of the available bandwidth
 over time period $[1:T]$, defined as
 % , we use ratio of the throughput used for
 %video downloading and playing over the available bandwidth:
-${E}=\frac{\sum\limits_{t=1}^\tau  (\sum \limits_{i=1}^M R_i *  x_i^t)}{\sum\limits_{t=1}^\tau C^t}$. 
+%${E}=\frac{\sum\limits_{t=1}^\tau  (\sum \limits_{i=1}^M R_i *
+%x_i^t)}{\sum\limits_{t=1}^\tau C^t}$. 
+${E}=\frac{\sum\limits_{t=1}^\tau  Download(t)}{\sum\limits_{t=1}^\tau C^t}$. 
 The MILP for maximizing quality without causing interruptions is
 \begin{subequations}
 \begin{align*}
@@ -151,7 +175,7 @@ The MILP for maximizing quality without causing interruptions is
 %&\sum \limits_{t=1}^\tau  \sum \limits_{i=1}^M R_i \cdot
 %x_i^t\leq\sum\limits_{t=1}^\tau C^t& \forall \tau \in \{1, \dots,
 %T\}\\
-&\forall \tau \in \{1, \dots, T\}, \sum \limits_{t=1}^\tau  (\sum \limits_{i=1}^M R_i *  x_i^t)
+&\forall \tau \in \{1, \dots, T\}, \sum \limits_{t=1}^\tau  Download(t)
 \leq\sum\limits_{t=1}^\tau C^t \\
 & \forall t, \sum \limits_{i=1}^M x_i^t =1\ \\
 & \forall t, i, x_i^t = \{0,1\}
@@ -191,22 +215,23 @@ threshold $B_{risk} $. In risky zone, we have low buffer occupancy and
 a high chance of buffer over-drain. So we try to build the buffer by
 picking one rate lower than what the available bandwidth can support.
 %  we decide to step down our quality by one, 
-E.g., if the bandwidth is $0.58$Mbps and two closest video
+E.g., if the bandwidth is $0.58$ Mbps and two closest video
 bit rates are $0.56$ and $0.375$, we choose $ 0.375$ as an
 ideal bit rate for the bandwidth in the risky zone. 
  therefore we can
 fill in the client buffer to safe phase faster. 
 %\rks {So we request one chunk at $0.375$ and then do we request  another chunk right away to build the buffer?}
 In the safe zone we
-pick the highest available bit rate which is $0.56$Mbps in our
+pick the highest available bit rate which is $0.56$ Mbps in our
 example. We call this computed bit rate referred bit rate, $R_{ref}$.
 %  Choosing referred bandwidth would give us high play efficiency.  
 
 \begin{algorithm} [t]
 \SetAlgoLined
  \SetKwInOut{Input}{Input}
- \Input{ $C$: Predicted available bandwidth \newline$\mathbf{B}$:
-   Buffer occupancy vector for last $t$ chunks\newline$R_{cur}$: Current video bit rate}
+ \Input{ $C$: Predicted available bandwidth \newline
+   $\mathbf{B}$: Buffer occupancy vector for last $t$ chunks
+   \newline$R_{cur}$: Current video bit rate}
  \SetKwInOut{Output}{Output}
  \Output{$Rate$: Rate for next chunk. }
 %pick MAX($R_{ref}$) where $R_{ref}<C$\;
@@ -214,7 +239,7 @@ example. We call this computed bit rate referred bit rate, $R_{ref}$.
  Sleep for $B_t -z$ seconds\
  \
 }
-${ref} = \argmax ({i: R_i \le C})$\;
+${ref} = \max ({i: R_i \le C})$\;
  \uIf{$B_t\leq B_{risk} $}{
 % \rks{ Is $B'$ same as $B_t$?}
  $ref = ref-1$\;
@@ -245,7 +270,7 @@ ${ref} = \argmax ({i: R_i \le C})$\;
 The algorithm considers the stability in the following manner: it
 compares the referred play bit rate and current play bit rate, and
 chooses the referred or current bandwidth or a play bit rate
-between them based on a certain criteria. It uses delayed updates
+between them based on  certain criteria. It uses delayed updates
 based on the buffer occupancy status and uses ideas similar to what
 was proposed in BBA \cite{BBA} and FESTIVE \cite{Festive} algorithms. 
 At the high level, the algorithm tries to stay at $R_{cur}$, 
@@ -298,7 +323,7 @@ step boosts stability.
 
 
 The online algorithm continuously estimates the bandwidth for the next
-chunk and selects the bit rate and download once a chunk finishes downloading, unless the client
+chunk and selects the bit rate and downloads as soon as a chunk finishes downloading, unless the client
 buffer is totally full at size z, as shown in
 \autoref{cap:algorithm}. 
 %\rks{Should the algorithm contain a condition for when buffer is full $= z$?}
