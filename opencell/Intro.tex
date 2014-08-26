@@ -1,6 +1,7 @@
 \section{Introduction}
 \label{sec:intro}
 
+\begin{comment}
 Video streaming has been a dominant application traffic in cellular networks, as
 it consists up to 40\% of the peak load~\cite{LTENetwork, VideoMeasureatt}.
 But most video streaming algorithms are mainly designed for wireline
@@ -46,6 +47,7 @@ To address the issue, we propose a joint optimization between the cellular netwo
 \end{itemize}
 
 This paper introduces a scalable architecture to compute the bandwidth and expose the KPIs to the service provider in \autoref{sec:Architecture} and then we conduct a preliminary measurement study of predictability of available bandwidth in \autoref{sec:prediction}. We propose our new optimization algorithm in \autoref{sec:optimization} and show our results in \autoref{sec:evaluation}. This paper concludes in \autoref{sec:conclusion}. 
+
 
 
 =============== [rjana,gvijay] 
@@ -126,4 +128,44 @@ approaches (i.e., FESTIVE~\cite{Festive} and BBA~\cite{BBA}). Our
 results show that our algorithm performs better than both these
 approaches. Finally, we propose various mechanisms through which our
 predicted bandwidth can be made available to video clients.
+
+
+
+========== [emir, based on rjana,gvijay]
+
+On-demand video streaming has rapidly become a dominant application in the Internet, accounting for 66\% of total consumer traffic in 2013, and projected to reach 79\% in 2018~\cite{cisco-vni}. In some cellular networks, over-the-top video has reached 40\% of the peak load~\cite{Erman:IMC:2011}. Such demand puts pressure on wireline and wireless Internet Service Providers (ISPs) to improve access link speeds and network coverage, in order to support high Quality of Experience (QoE) for their users.
+
+One of the key drivers of video streaming success is the adoption of Adaptive-Bit-Rate (ABR) streaming over HTTP, which adjusts video quality in response to changing network conditions. The fundamental principle of ABR streaming is to match the required delivery rate of the selected video quality to the available end-to-end bandwidth between the content server and the client. However, even after years of deployment, many Internet streaming providers struggle to achieve high-quality reliable service over cellular networks, even over high-speed 4G cellular links. For example, it is reported that the fraction of stalled videos increases with video quality, with 10.5\% of 240p videos stalling while 45.7\% of 720p videos experiencing a stall~\cite{citrix-stall}. 
+
+We believe that one of the main reasons for the low QoE is a mismatch between information used by a video adaptation process and available network bandwidth.  The adaptation process on a video client has to decide when and which video quality to request, based on some estimate of available bandwidth. This is not a trivial task in best-effort Internet, due to varying link capacities, congestion, and other factors. In cellular networks, this task is even more challenging, due to highly variable radio link, which is affected by signal strength, interference, noise, mobility, and other factors.
+
+On the other hand, we recognize that cellular networks have a special feature that can offer a much better bandwidth prediction. The radio link in cellular networks is precisely scheduled, where radio metrics are combined to determine both the time and link rate available to each device. In addition, the architecture of the network allows an operator to have a global view of all devices, their link characteristics, and traffic demand. Our goal is to exploit this network information to improve cellular video QoE.
+
+In this paper, we first demonstrate that traditional approach of bandwidth estimation using historical throughput is rendered invalid by the character of radio links, whose conditions can rapidly change at short time scale. We then postulate that in cellular networks, a more accurate prediction using network information can be achieved, leading to significant benefits in QoE. To this end, we develop Prediction-Based Adapation (PBA) class of algorithms, that are able to use the predicted available bandwidth for better and more stable video streaming. 
+
+We first present an oracle-based offline PBA algorithm that establishes an upper bound on achievable video quality. Then, we develop an online PBA algorithm that uses several seconds of predicted bandwidth to achieve XX\% better quality, XX\% higher stability and superior outage tolerance over existing state-of-the-art proposals. After including critical stability and stall-free requirements, online PBA algorithm comes within 84\% of the upper bound on video quality. Finally, we discuss prediction methods and architectures for opening the cellular network and exposing the predictions via API.
+
+\end{comment}
+[emir v2]
+On-demand video streaming has rapidly become a dominant application in the Internet, accounting for 66\% of total consumer traffic in 2013, and projected to reach 79\% in 2018~\cite{cisco-vni}. In some cellular networks, over-the-top video has reached 40\% of the peak load~\cite{Erman:IMC:2011}. Such demand puts pressure on wireline and wireless Internet Service Providers (ISPs) to improve access link speeds and network coverage, in order to support high Quality of Experience (QoE) for their users.
+
+One of the key drivers of video streaming success is the adoption of Adaptive-Bit-Rate (ABR) streaming over HTTP. The fundamental principle of ABR streaming is to match the required delivery rate of the selected video quality to the available end-to-end bandwidth between the content server and the client. However, even after years of deployment, many Internet streaming providers struggle to achieve high-quality reliable service over cellular networks, even over high-speed 4G cellular links. For example, it is reported that the fraction of stalled videos increases with video quality, with 10.5\% of 240p videos stalling while 45.7\% of 720p videos experiencing a stall~\cite{citrix-stall}. 
+
+The adaptation process on a video client has to decide when and which video quality to request. This decision is based on some estimate of available bandwidth, typically using historical throughput~\cite{QDASH,Festive} or pre-fetch buffer level~\cite{BBA}. We believe that the key reason for low QoE is a mismatch between information used by the existing adaptation algorithms and the actual available network bandwidth. The best-effort Internet poses a non-trivial task to such adaptation logic, due to varying link capacities, congestion, and other factors. In cellular networks, this task is even more challenging, 
+%due to a highly variable radio link at sub-second level, which is affected by signal strength, interference, noise, mobility, and other factors.
+since factors like signal strength, interference, noise, and mobility cause link variations at sub-second level.
+
+In this paper, we focus on the following question: \emph{If accurate bandwidth prediction were possible in a cellular network, would this substantially improve ABR video QoE}? We consider cellular networks for two reasons. First, it is a very challenging environment with high link variability. Second, traffic over a typical bottleneck, the radio link, is carefully scheduled. A base station tracks multiple network metrics (routinely used in the scheduling process) that can be used to predict available bandwidth in near future (several seconds). In addition, the architecture of the network allows an operator to have a global view of all devices, their link characteristics, and traffic demand. Our goal is to exploit this network information and expose it to the service providers.
+
+To this end, we first demonstrate that traditional approach of bandwidth estimation using historical throughput~\cite{Festive} is rendered invalid by the variable character of radio links. 
+%Then, we postulate that in cellular networks, a more accurate prediction using network information can be achieved, leading to significant benefits in QoE. 
+Since state-of-the-art adaptation algorithms~\cite{BBA,QDASH,Festive} are not designed to use network-provided prediction, we develop a class of Prediction-Based Adapation (PBA) algorithms, that are able to use the predicted available bandwidth for improving video QoE. 
+
+We first present an oracle-based offline PBA algorithm that establishes an upper bound on achievable video quality. Then, we develop an online PBA algorithm that uses several seconds of predicted bandwidth to achieve 26\% better quality, 170\% higher stability and superior outage tolerance over existing state-of-the-art proposals. After including critical stability and stall-free requirements, online PBA algorithm comes within 84\% of the upper bound on video quality. 
+
+After establishing that prediction brings significant gain, we discuss prediction methods and architectures for opening the cellular network and exposing the predictions via API.
+
+
+
+
 
